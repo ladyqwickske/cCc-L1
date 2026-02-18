@@ -757,6 +757,19 @@
           console.error('Stats error:', e);
           document.getElementById('playerList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading player stats</div>';
         });
+
+      // 3. Get chest splits
+      fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getSplits', startDate, endDate })
+      })
+        .then(res => res.json())
+        .then(splits => {
+          console.log('[DEBUG] getSplits response:', splits);
+          window.currentSplits = splits || {};
+        })
+        .catch(e => console.error('Splits error:', e));
     }
     
     function displaySummary(data) {
