@@ -74,10 +74,12 @@
     }
 
     .tab-btn .tab-icon {
-      width: 56px;
-      height: 56px;
       display: block;
       margin: 0 auto;
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 500;
+      white-space: nowrap;
       filter: drop-shadow(0 2px 8px #000a);
     }
 
@@ -345,40 +347,38 @@
     try { isAuthed = localStorage.getItem(AUTH_KEY) === '1'; } catch (e) {}
     let authedEmail = null;
     try { authedEmail = localStorage.getItem(AUTH_EMAIL_KEY); } catch (e) {}
-    if (!isAuthed) {
-      setReadOnlyMode(true);
-      // Show a 'Sign in to Manage' button in the nav bar
-      window.addEventListener('DOMContentLoaded', function() {
-        updateSignedInBadge(null);
-        let nav = document.querySelector('.tab-nav-container');
-        if (nav && !document.getElementById('signInManageBtn')) {
-          const btn = document.createElement('button');
-          btn.id = 'signInManageBtn';
-          btn.textContent = '🔑 Sign in to Manage';
-          btn.style = 'margin-left:16px;padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;';
-          btn.onclick = showGoogleLogin;
-          nav.appendChild(btn);
-        }
-      });
-    } else {
-      setReadOnlyMode(false);
-      window.addEventListener('DOMContentLoaded', function() {
+    // Auto-enter guest mode on page load
+    setReadOnlyMode(true);
+    window.addEventListener('DOMContentLoaded', function() {
+      updateSignedInBadge(null);
+      let nav = document.querySelector('.tab-nav-container');
+      if (nav && !document.getElementById('signInManageBtn')) {
+        const btn = document.createElement('button');
+        btn.id = 'signInManageBtn';
+        btn.textContent = '🔑 Sign in to Manage';
+        btn.style = 'margin-left:16px;padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;';
+        btn.onclick = showGoogleLogin;
+        nav.appendChild(btn);
+      }
+      // If user is authenticated, upgrade from guest mode
+      if (isAuthed && authedEmail) {
+        setReadOnlyMode(false);
         updateSignedInBadge(authedEmail);
-      });
-    }
+      }
+    });
   </script>
   
   <nav class="tab-nav">
     <div class="tab-nav-container">
       <div class="nav-brand" id="navBrand">⚔️👑 cCc Portal</div>
       <div class="tab-buttons">
-        <a href="dashboard.html" class="tab-btn active" title="Dashboard"><img src="chests.png" alt="Dashboard" class="tab-icon"></a>
-        <a href="events.html" class="tab-btn" title="Events"><img src="events.png" alt="Events" class="tab-icon"></a>
-        <a href="members.html" class="tab-btn" title="Members"><img src="members.png" alt="Members" class="tab-icon"></a>
-        <a href="troops.html" class="tab-btn" title="Troops"><img src="troops.png" alt="Troops" class="tab-icon"></a>
-        <a href="progress.html" class="tab-btn" title="Progress"><img src="progress.png" alt="Progress" class="tab-icon"></a>
-        <a href="compensation.html" class="tab-btn" title="Compensation"><img src="compensation.png" alt="Compensation" class="tab-icon"></a>
-        <a href="points.html" class="tab-btn" title="Points Reference"><img src="chest_points.png" alt="Points Reference" class="tab-icon"></a>
+        <a href="dashboard.html" class="tab-btn active" title="Dashboard"><span class="tab-icon">📊 Dashboard</span></a>
+        <a href="events.html" class="tab-btn" title="Events"><span class="tab-icon">🗓️ Events</span></a>
+        <a href="members.html" class="tab-btn" title="Members"><span class="tab-icon">👥 Members</span></a>
+        <a href="troops.html" class="tab-btn" title="Troops"><span class="tab-icon">🪖 Troops</span></a>
+        <a href="progress.html" class="tab-btn" title="Progress"><span class="tab-icon">📈 Progress</span></a>
+        <a href="compensation.html" class="tab-btn" title="Compensation"><span class="tab-icon">💰 Comp</span></a>
+        <a href="points.html" class="tab-btn" title="Points Reference"><span class="tab-icon">🏆 Points</span></a>
       </div>
       <div id="readOnlyBadge" style="display: none; padding: 8px 12px; background: #fff3cd; border-radius: 4px; font-size: 12px; color: #856404;">🔒 Read-Only Mode</div>
       <div id="signedInUserBadge" style="display: none; margin-left: auto; padding: 8px 12px; background: #1a1b1c; border-radius: 4px; font-size: 12px; color: #ffb300; border: 1px solid #444;"></div>
@@ -387,7 +387,7 @@
   </nav>
 
   <div id="dashboard" class="tab-content active">
-    <h1><img src="chests.png" alt="" style="height: 64px; vertical-align: middle; margin-right: 8px;"> Chest Tracker Dashboard</h1>
+    <h1><span style="font-size: 48px; vertical-align: middle; margin-right: 8px;">📊</span> Chest Tracker Dashboard</h1>
     <div class="date-filter">
       <div class="date-filter-label">📅 Date Range Filter</div>
       <div class="date-preset-btns">

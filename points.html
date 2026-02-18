@@ -358,15 +358,15 @@
 
   <!-- Main Content -->
   <div class="page-container">
-    <div id="loginPrompt" class="login-container" style="display: none;">
-      <h1>Sign in to MOO Portal</h1>
-      <p>You need to be signed in to access the Points Reference.</p>
-      <div class="google-signin" id="googleSignInContainer"></div>
+    <div id="loginPrompt" style="display: none; text-align: center; padding: 40px;">
+      <button id="signInBtn" style="padding: 12px 24px; font-size: 16px; cursor: pointer; background: #ffb300; color: #232526; border: none; border-radius: 4px; font-weight: 600;">Sign in to Manage</button>
     </div>
 
-    <div id="mainContent" style="display: none;">
+    <div class="google-signin" id="googleSignInContainer" style="display: none; text-align: center; padding: 20px;"></div>
+
+    <div id="mainContent" style="display: block;">
       <div class="header">
-        <h1><img src="chest_points.png" alt="Points Reference" class="tab-icon" style="height: 64px; vertical-align: middle; margin-right: 8px;"> Points Reference</h1>
+        <h1><span style="font-size: 48px; vertical-align: middle; margin-right: 8px;">🏆</span> Points Reference</h1>
         <p>Reference table for all chest types and their corresponding point values</p>
       </div>
 
@@ -454,23 +454,35 @@
 
     // Check authentication and initialize
     window.addEventListener('DOMContentLoaded', () => {
-      const isSignedIn = localStorage.getItem('mooClanSignedIn') === 'true';
+      const isSignedIn = localStorage.getItem('cccClanSignedIn') === 'true';
+      
+      // Always show main content (guest mode)
+      document.getElementById('mainContent').style.display = 'block';
+      document.getElementById('loginPrompt').style.display = 'none';
+      initializeTable();
+      
+      // Setup sign-in button
+      const signInBtn = document.getElementById('signInBtn');
+      if (signInBtn) {
+        signInBtn.addEventListener('click', () => {
+          document.getElementById('loginPrompt').style.display = 'block';
+          document.getElementById('googleSignInContainer').style.display = 'block';
+          initializeGoogleSignIn();
+        });
+      }
+      
+      // If already signed in, authenticate automatically
       if (isSignedIn) {
-        document.getElementById('mainContent').style.display = 'block';
-        document.getElementById('loginPrompt').style.display = 'none';
-        initializeTable();
-      } else {
-        document.getElementById('loginPrompt').style.display = 'block';
-        document.getElementById('mainContent').style.display = 'none';
         initializeGoogleSignIn();
       }
+      
       updateReadOnlyUI();
     });
 
     function logout() {
-      if (confirm('Sign out of MOO Portal?')) {
-        localStorage.removeItem('mooClanSignedIn');
-        localStorage.removeItem('mooClanUser');
+      if (confirm('Sign out of cCc Portal?')) {
+        localStorage.removeItem('cccClanSignedIn');
+        localStorage.removeItem('cccClanUser');
         document.getElementById('mainContent').style.display = 'none';
         document.getElementById('loginPrompt').style.display = 'block';
         document.body.classList.remove('read-only-mode');
