@@ -197,15 +197,6 @@
         if (document.body) document.body.classList.remove('read-only-mode');
         console.log('[INFO] Portal loaded in EDITABLE mode');
       }
-      // Extra logging after mode is set
-      setTimeout(() => {
-        console.log('[DEBUG] Body classList:', document.body ? document.body.classList.toString() : 'no body');
-        console.log('[DEBUG] DocumentElement classList:', document.documentElement.classList.toString());
-        const badge = document.getElementById('readOnlyBadge');
-        if (badge) console.log('[DEBUG] readOnlyBadge display:', badge.style.display);
-        const signedInUserBadge = document.getElementById('signedInUserBadge');
-        if (signedInUserBadge) console.log('[DEBUG] signedInUserBadge display:', signedInUserBadge.style.display, 'content:', signedInUserBadge.textContent);
-      }, 100);
     }
 
     function updateSignedInBadge(email) {
@@ -218,13 +209,11 @@
         badge.style.display = 'inline-block';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
         if (signInBtn) signInBtn.style.display = 'none';
-        console.log('[DEBUG] updateSignedInBadge: signed in as', email);
       } else {
         badge.textContent = '';
         badge.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (signInBtn) signInBtn.style.display = 'inline-block';
-        console.log('[DEBUG] updateSignedInBadge: signed out');
       }
     }
 
@@ -233,7 +222,6 @@
       try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch (e) {}
       setReadOnlyMode(true);
       updateSignedInBadge(null);
-      console.log('[DEBUG] handleLogout: user logged out, set to read-only');
       setTimeout(() => { window.location.reload(); }, 200);
     }
 
@@ -270,7 +258,6 @@
             try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
             try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch (e) {}
             updateSignedInBadge(null);
-            console.log('[DEBUG] Guest mode selected: set to read-only');
           };
         }
           // Initialize Google Sign-In library before rendering button
@@ -343,7 +330,6 @@
           updateSignedInBadge(email);
           document.getElementById('login-overlay').remove();
           setReadOnlyMode(false);
-          console.log('[DEBUG] Google sign-in success: set to editable');
           setTimeout(() => { window.location.reload(); }, 200);
         } else {
           setReadOnlyMode(true);
@@ -438,9 +424,6 @@
 
     <h2>🥇 Player Rankings</h2>
     <div class="player-list" id="playerList"><div class="loading">Loading player stats...</div></div>
-
-    <h2>📊 Chest Splits</h2>
-    <div class="player-list" id="splitsList"><div class="loading">Loading chest splits...</div></div>
   </div>
 
   <script>
@@ -480,15 +463,11 @@
 
     // Dashboard
     window.onload = function() { 
-      console.log('[DEBUG] window.onload triggered');
       setDateRange('lastday');
       loadLastImportTimestamp();
     };
     
     function setDateRange(preset) {
-      console.log('[DEBUG] setDateRange called with preset:', preset);
-      // Always use the new splits sheet names for splits display
-      window.currentSplitsSheet = (preset === 'lastday') ? 'Splits_ActiveWeek' : (preset === 'prevweek') ? 'Splits_PreviousWeek' : null;
       const today = new Date();
       const startInput = document.getElementById('startDate');
       const endInput = document.getElementById('endDate');
@@ -505,7 +484,6 @@
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[data-preset="${preset}"]`)?.classList.add('active');
       if (preset === 'lastday') {
-        console.log('[DEBUG] setDateRange: loading Active Period');
         // Active Period: Based on Ruthless Slaughter events
         displayElement.textContent = 'Loading Active Period...';
         fetch(window.GAS_WEB_APP_URL, {
@@ -525,7 +503,6 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              console.log('[DEBUG] setDateRange: fallback to Sunday-Saturday, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -546,7 +523,6 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              console.log('[DEBUG] setDateRange: No Ruthless Slaughter events, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -589,7 +565,6 @@
                 startInput.value = formatDate(start);
                 endInput.value = formatDate(end);
                 displayElement.textContent = `Viewing: Active Period (Between Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-                console.log('[DEBUG] setDateRange: Between Events, calling loadDashboard');
                 loadDashboard();
                 return;
               }
@@ -604,7 +579,6 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            console.log('[DEBUG] setDateRange: Using active period, calling loadDashboard');
             loadDashboard();
           })
           .catch(error => {
@@ -617,13 +591,11 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            console.log('[DEBUG] setDateRange: Error fetching events, calling loadDashboard');
             loadDashboard();
           });
         return;
       }
       if (preset === 'prevweek') {
-        console.log('[DEBUG] setDateRange: loading Previous Period');
         // Previous Period: Based on Ruthless Slaughter events
         displayElement.textContent = 'Loading Previous Period...';
         fetch(window.GAS_WEB_APP_URL, {
@@ -642,7 +614,6 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              console.log('[DEBUG] setDateRange: fallback to previous Sunday-Saturday, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -662,7 +633,6 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Previous Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              console.log('[DEBUG] setDateRange: No period events, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -723,7 +693,6 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Previous Period (${previousPeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            console.log('[DEBUG] setDateRange: Using previous period, calling loadDashboard');
             loadDashboard();
           })
           .catch(error => {
@@ -736,13 +705,11 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Previous Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            console.log('[DEBUG] setDateRange: Error fetching events, calling loadDashboard');
             loadDashboard();
           });
         return;
       }
       if (preset === 'currentmonth') {
-        console.log('[DEBUG] setDateRange: current month, calling loadDashboard');
         const start = new Date(today.getFullYear(), today.getMonth(), 1);
         // Get the last day of current month
         const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -753,7 +720,6 @@
         return;
       }
       if (preset === 'lastmonth') {
-        console.log('[DEBUG] setDateRange: last month, calling loadDashboard');
         const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const end = new Date(today.getFullYear(), today.getMonth(), 0);
         startInput.value = formatDate(start);
@@ -765,103 +731,33 @@
     }
     
     function loadDashboard() {
-      console.log('[DEBUG] loadDashboard called');
-      // Always use the new splits sheet names for splits display
-      const splitsSheetName = window.currentSplitsSheet || 'Splits_ActiveWeek';
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
       document.getElementById('playerList').innerHTML = '<div class="loading">Loading...</div>';
-      document.getElementById('splitsList').innerHTML = '<div class="loading">Loading chest splits...</div>';
-
-      // 1. Get splits
-      console.log('[DEBUG] Fetching splits with sheetName:', splitsSheetName);
-      console.log('[DEBUG] Sending fetch for splits...');
-      fetch(window.GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getSplits', sheetName: splitsSheetName })
-      })
-        .then(res => {
-          console.log('[DEBUG] Splits fetch response status:', res.status);
-          return res.json();
-        })
-        .then(data => {
-          console.log('[DEBUG] Splits fetch data:', data);
-          displaySplits(data);
-        })
-        .catch(e => {
-          console.error('[DEBUG] Splits fetch error:', e);
-          document.getElementById('splitsList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading chest splits</div>';
-        });
-
-      // 2. Get summary
-      console.log('[DEBUG] Sending fetch for summary...');
+      // Use CORS proxy (Cloudflare Worker) for API calls
+      // 1. Get summary
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getStatsSummary', startDate, endDate })
       })
-        .then(res => {
-          console.log('[DEBUG] Summary fetch response status:', res.status);
-          return res.json();
-        })
-        .then(data => {
-          console.log('[DEBUG] Summary fetch data:', data);
-          displaySummary(data);
-        })
-        .catch(e => console.error('[DEBUG] Summary fetch error:', e));
+        .then(res => res.json())
+        .then(displaySummary)
+        .catch(e => console.error('Summary error:', e));
 
-      // 3. Get player stats
-      console.log('[DEBUG] Sending fetch for player stats...');
+      // 2. Get player stats
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getPlayerStats', startDate, endDate })
       })
-        .then(res => {
-          console.log('[DEBUG] Player stats fetch response status:', res.status);
-          return res.json();
-        })
-        .then(data => {
-          console.log('[DEBUG] Player stats fetch data:', data);
-          displayPlayerStats(data);
-        })
+        .then(res => res.json())
+        .then(displayPlayerStats)
         .catch(e => {
-          console.error('[DEBUG] Player stats fetch error:', e);
+          console.error('Stats error:', e);
           document.getElementById('playerList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading player stats</div>';
         });
     }
-        function displaySplits(data) {
-          const container = document.getElementById('splitsList');
-          console.log('[DEBUG] displaySplits raw input:', data);
-          // Normalize response
-          const norm = normalizeResponse(data);
-          console.log('[DEBUG] displaySplits normalized:', norm);
-          let rows = norm.data || norm.splits || data;
-          if (!Array.isArray(rows)) rows = [];
-          if (rows.length === 0) {
-            container.innerHTML = '<div class="loading">No splits data found';
-            if (norm && norm.error) container.innerHTML += `<br><span style=\"color:#d93025;\">Error: ${norm.error}</span>`;
-            container.innerHTML += '</div>';
-            return;
-          }
-          // Assume first row is header if it contains strings
-          let header = [];
-          if (typeof rows[0][0] === 'string') {
-            header = rows[0];
-            rows = rows.slice(1);
-          } else {
-            // Fallback: generate header as Col1, Col2, ...
-            header = rows[0] ? rows[0].map((_,i)=>`Col${i+1}`) : [];
-          }
-          let html = '<div class="chest-table">';
-          html += '<div class="table-header">' + header.map(h=>`<div class="header-cell">${h}</div>`).join('') + '</div>';
-          rows.forEach(row => {
-            html += '<div class="player-row">' + row.map(cell=>`<div class="cell">${cell}</div>`).join('') + '</div>';
-          });
-          html += '</div>';
-          container.innerHTML = html;
-        }
     
     function displaySummary(data) {
       document.getElementById('totalChests').textContent = data.totalChests ? data.totalChests.toLocaleString() : '0';
@@ -938,4 +834,38 @@
       document.querySelectorAll(`[data-type="${typeName}"]`).forEach(el=>{ if (el.classList.contains('level-header')||el.classList.contains('level-cell')) el.classList.toggle('visible'); });
     }
 
-
+    function loadLastImportTimestamp() {
+      fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getLastImportTimestamp' })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log('[DEBUG] Import timestamp response:', data);
+          const display = document.getElementById('lastImportedDisplay');
+          if (display) {
+            let timestampText = 'No imports yet';
+            if (data && data.success && data.data && data.data.timestamp) {
+              timestampText = data.data.timestamp;
+            } else if (data && data.timestamp) {
+              timestampText = data.timestamp;
+            } else if (data && data.data && typeof data.data === 'string') {
+              timestampText = data.data;
+            }
+            if (timestampText === 'No imports yet') {
+              display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
+            } else {
+              display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
+            }
+          }
+        })
+        .catch(e => {
+          console.error('Error loading import timestamp:', e);
+          const display = document.getElementById('lastImportedDisplay');
+          if (display) display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
+        });
+    }
+  </script>
+</body>
+</html>
