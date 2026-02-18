@@ -424,6 +424,9 @@
 
     <h2>🥇 Player Rankings</h2>
     <div class="player-list" id="playerList"><div class="loading">Loading player stats...</div></div>
+
+    <h2>📊 Chest Splits</h2>
+    <div class="player-list" id="splitsList"><div class="loading">Loading chest splits...</div></div>
   </div>
 
   <script>
@@ -738,32 +741,22 @@
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
       document.getElementById('playerList').innerHTML = '<div class="loading">Loading...</div>';
-      // Use CORS proxy (Cloudflare Worker) for API calls
-      // 1. Get splits (if needed in future, e.g. for a splits tab or section)
-      // Example: fetch splits data if you want to display it
-      // fetch(window.GAS_WEB_APP_URL, {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ action: 'getSplits', sheetName: splitsSheetName })
-      // })
-      //   .then(res => res.json())
-      //   .then(displaySplits)
-      //   .catch(e => console.error('Splits error:', e));
-          // If you have a clear cache or reload function, ensure it references the new splits sheet names
-          function clearCacheAndReload() {
-            // Always clear both splits sheets
-            const splitsSheetNames = ['Splits_Active Period', 'Splits_Previous Period'];
-            splitsSheetNames.forEach(sheetName => {
-              // Example: send a request to backend to clear/rebuild this sheet
-              fetch(window.GAS_WEB_APP_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'clearSplitsSheet', sheetName })
-              });
-            });
-            // Reload dashboard after clearing
-            setTimeout(loadDashboard, 1000);
-          }
+      document.getElementById('splitsList').innerHTML = '<div class="loading">Loading chest splits...</div>';
+
+      // 1. Get splits
+      fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getSplits', sheetName: splitsSheetName })
+      })
+        .then(res => res.json())
+        .then(displaySplits)
+        .catch(e => {
+          console.error('Splits error:', e);
+          document.getElementById('splitsList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading chest splits</div>';
+        });
+
+      // 2. Get summary
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -773,7 +766,7 @@
         .then(displaySummary)
         .catch(e => console.error('Summary error:', e));
 
-      // 2. Get player stats
+      // 3. Get player stats
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -786,6 +779,33 @@
           document.getElementById('playerList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading player stats</div>';
         });
     }
+        function displaySplits(data) {
+          const container = document.getElementById('splitsList');
+          // Normalize response
+          const norm = normalizeResponse(data);
+          let rows = norm.data || norm.splits || data;
+          if (!Array.isArray(rows)) rows = [];
+          if (rows.length === 0) {
+            container.innerHTML = '<div class="loading">No splits data found</div>';
+            return;
+          }
+          // Assume first row is header if it contains strings
+          let header = [];
+          if (typeof rows[0][0] === 'string') {
+            header = rows[0];
+            rows = rows.slice(1);
+          } else {
+            // Fallback: generate header as Col1, Col2, ...
+            header = rows[0] ? rows[0].map((_,i)=>`Col${i+1}`) : [];
+          }
+          let html = '<div class="chest-table">';
+          html += '<div class="table-header">' + header.map(h=>`<div class="header-cell">${h}</div>`).join('') + '</div>';
+          rows.forEach(row => {
+            html += '<div class="player-row">' + row.map(cell=>`<div class="cell">${cell}</div>`).join('') + '</div>';
+          });
+          html += '</div>';
+          container.innerHTML = html;
+        }
     
     function displaySummary(data) {
       document.getElementById('totalChests').textContent = data.totalChests ? data.totalChests.toLocaleString() : '0';
