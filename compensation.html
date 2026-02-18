@@ -61,12 +61,14 @@
       margin-bottom: 8px;
       display: flex;
       align-items: center;
+      justify-content: center;
       gap: 12px;
     }
 
     .header p {
       color: #ccc;
       font-size: 14px;
+      text-align: center;
     }
 
     .tab-icon {
@@ -757,6 +759,156 @@
   </style>
 </head>
 <body>
+  <!-- Google Sign-In integration -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script>
+    // --- Google Sign-In for edit access ---
+    const BACKEND_VERIFY_URL = window.GAS_WEB_APP_URL;
+    const AUTH_KEY = 'ccc_portal_google_auth';
+    const AUTH_EMAIL_KEY = 'ccc_portal_google_email';
+
+    function setReadOnlyMode(enabled) {
+      if (enabled) {
+        document.documentElement.classList.add('read-only-mode');
+        if (document.body) document.body.classList.add('read-only-mode');
+      } else {
+        document.documentElement.classList.remove('read-only-mode');
+        if (document.body) document.body.classList.remove('read-only-mode');
+      }
+    }
+
+    function updateSignedInBadge(email) {
+      const badge = document.getElementById('signedInUserBadge');
+      const logoutBtn = document.getElementById('logoutBtn');
+      if (!badge) return;
+      if (email) {
+        badge.innerHTML = `<img src="cute_cow.png" style="height:16px;width:16px;vertical-align:-3px;margin-right:6px;">${email}`;
+        badge.style.display = 'inline-block';
+        if (logoutBtn) logoutBtn.style.display = 'inline-block';
+      } else {
+        badge.textContent = '';
+        badge.style.display = 'none';
+        if (logoutBtn) logoutBtn.style.display = 'none';
+      }
+    }
+
+    function handleLogout() {
+      try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
+      try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch (e) {}
+      setReadOnlyMode(true);
+      updateSignedInBadge(null);
+      setTimeout(() => { window.location.reload(); }, 200);
+    }
+
+    function showGoogleLogin() {
+      const loginDiv = document.createElement('div');
+      loginDiv.id = 'login-overlay';
+      loginDiv.style = 'position:fixed;top:0;left:0;width:100vw;height:100vh;background:rgba(0,0,0,0.8);z-index:9999;display:flex;align-items:center;justify-content:center;';
+      loginDiv.innerHTML = `
+        <div style="background:#232526;padding:32px 24px;border-radius:12px;box-shadow:0 4px 24px rgba(0,0,0,0.5);display:flex;flex-direction:column;align-items:center;gap:16px;min-width:300px;border:1px solid #444;">
+          <h2 style="margin-bottom:8px;color:#ffb300;">Sign in to Manage</h2>
+          <p style="font-size:14px;color:#e0e0e0;text-align:center;margin:0 0 8px 0;">Use your Google account to access management features</p>
+          <div id="g_id_onload" data-client_id="47674606892-0m90hd0cd01kijo69ssuqtn1j3igp32i.apps.googleusercontent.com" data-callback="onGoogleSignIn" data-auto_prompt="false" data-ux_mode="popup"></div>
+          <div id="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin" data-shape="rectangular" data-logo_alignment="left"></div>
+          <div style="width:100%;height:1px;background:#444;margin:8px 0;"></div>
+          <button id="guest-btn" style="width:100%;margin-top:8px;padding:12px 20px;border:1px solid #444;background:#232526;color:#ffb300;font-size:15px;font-weight:600;border-radius:6px;cursor:pointer;">Continue as Guest (Read-Only)</button>
+          <div id="login-error" style="color:#ff5252;font-size:13px;display:none;"></div>
+        </div>
+      `;
+      document.body.appendChild(loginDiv);
+      setTimeout(() => {
+        const guestBtn = document.getElementById('guest-btn');
+        if (guestBtn) {
+          guestBtn.onclick = function() {
+            document.getElementById('login-overlay').remove();
+            setReadOnlyMode(true);
+            try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
+            try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch (e) {}
+            updateSignedInBadge(null);
+          };
+        }
+        if (window.google && google.accounts && google.accounts.id) {
+          try {
+            google.accounts.id.initialize({
+              client_id: '47674606892-0m90hd0cd01kijo69ssuqtn1j3igp32i.apps.googleusercontent.com',
+              callback: onGoogleSignIn,
+              auto_select: false,
+              ux_mode: 'popup'
+            });
+            google.accounts.id.renderButton(document.getElementById('g_id_signin'), 
+              { type: 'standard', size: 'large', theme: 'outline', text: 'signin', shape: 'rectangular', logo_alignment: 'left' });
+          } catch (e) { console.error('Error rendering Google Sign-In button:', e); }
+        }
+      }, 100);
+    }
+
+    window.onGoogleSignIn = async function(response) {
+      const idToken = response.credential;
+      try {
+        const cfWorkerUrl = window.CLOUDFLARE_WORKER_URL || window.GAS_WEB_APP_URL;
+        let tokenRes = await fetch(cfWorkerUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ idToken })
+        });
+        let tokenData = await tokenRes.json();
+        if (!tokenData.success || !tokenData.token_verified) {
+          throw new Error(tokenData.error || 'Token verification failed');
+        }
+        const email = tokenData.email;
+        const res = await fetch(BACKEND_VERIFY_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'verifyUserPermission', email })
+        });
+        const data = await res.json();
+        if (data.isAllowedEditor) {
+          try { localStorage.setItem(AUTH_KEY, idToken); } catch (e) {}
+          try { localStorage.setItem(AUTH_EMAIL_KEY, email); } catch (e) {}
+          setReadOnlyMode(false);
+          updateSignedInBadge(email);
+          const overlay = document.getElementById('login-overlay');
+          if (overlay) overlay.style.display = 'none';
+        } else {
+          setReadOnlyMode(true);
+          const errorDiv = document.getElementById('login-error');
+          if (errorDiv) {
+            errorDiv.style.display = 'block';
+            errorDiv.textContent = 'Your account does not have editor access';
+          }
+        }
+      } catch (error) {
+        console.error('Error during sign-in:', error);
+        const errorDiv = document.getElementById('login-error');
+        if (errorDiv) {
+          errorDiv.style.display = 'block';
+          errorDiv.textContent = 'Sign-in failed: ' + error.message;
+        }
+      }
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const token = (() => { try { return localStorage.getItem(AUTH_KEY); } catch (e) { return null; } })();
+      const email = (() => { try { return localStorage.getItem(AUTH_EMAIL_KEY); } catch (e) { return null; } })();
+      if (token && email) {
+        setReadOnlyMode(false);
+        updateSignedInBadge(email);
+      } else {
+        setReadOnlyMode(true);
+        updateSignedInBadge(null);
+        let nav = document.querySelector('.tab-nav-container');
+        if (nav && !document.getElementById('signInManageBtn')) {
+          const btn = document.createElement('button');
+          btn.id = 'signInManageBtn';
+          btn.textContent = '🔑 Sign in to Manage';
+          btn.style = 'margin-left:16px;padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;';
+          btn.onclick = showGoogleLogin;
+          nav.appendChild(btn);
+        }
+      }
+    });
+  </script>
+
   <!-- Navigation Bar -->
   <nav class="tab-nav">
     <div class="tab-nav-container">
