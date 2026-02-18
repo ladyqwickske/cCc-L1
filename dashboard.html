@@ -423,12 +423,12 @@
     function updateReadOnlyUI() {
       if (document.documentElement.classList.contains('read-only-mode')) {
         const navBrand = document.getElementById('navBrand');
-        if (navBrand) navBrand.innerHTML = 'cCc Champions';
+        if (navBrand) navBrand.innerHTML = '<img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions';
         const badge = document.getElementById('readOnlyBadge');
         if (badge) badge.style.display = 'block';
       } else {
         const navBrand = document.getElementById('navBrand');
-        if (navBrand) navBrand.innerHTML = 'cCc Champions';
+        if (navBrand) navBrand.innerHTML = '<img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions';
         const badge = document.getElementById('readOnlyBadge');
         if (badge) badge.style.display = 'none';
       }
