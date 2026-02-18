@@ -350,15 +350,18 @@
     function updateSignedInBadge(email) {
       const badge = document.getElementById('signedInUserBadge');
       const logoutBtn = document.getElementById('logoutBtn');
+      const signInBtn = document.getElementById('signInManageBtn');
       if (!badge) return;
       if (email) {
-        badge.innerHTML = `<img src="cute_cow.png" style="height:16px;width:16px;vertical-align:-3px;margin-right:6px;">${email}`;
+        badge.innerHTML = email;
         badge.style.display = 'inline-block';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        if (signInBtn) signInBtn.style.display = 'none';
       } else {
         badge.textContent = '';
         badge.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (signInBtn) signInBtn.style.display = 'inline-block';
       }
     }
 
