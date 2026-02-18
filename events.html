@@ -4,8 +4,8 @@
   <base target="_top">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Masters Of Oops (MOO) - Events</title>
-  <link rel="icon" href="moo-portal.png" type="image/png">
+  <title>cCc Champions - Events</title>
+  <link rel="icon" href="favicon.png" type="image/png">
   <script src="config.js"></script>
   <script src="portal-shim.js"></script>
   <style>
@@ -15,7 +15,7 @@
       background: linear-gradient(135deg, #232526 0%, #414345 100%);
       color: #f3f3f3;
       text-align: center;
-      padding: 32px 8px 60px 8px;
+      padding: 32px 16px 60px 16px;
       min-height: 100vh;
       background-attachment: fixed;
     }
@@ -74,10 +74,14 @@
     }
 
     .tab-btn .tab-icon {
-      width: 56px;
-      height: 56px;
       display: block;
       margin: 0 auto;
+      height: 40px;
+      width: auto;
+      font-size: 16px;
+      line-height: 1.2;
+      font-weight: 500;
+      white-space: nowrap;
       filter: drop-shadow(0 2px 8px #000a);
     }
 
@@ -153,8 +157,8 @@
     .action-btn { padding: 4px 8px; font-size: 11px; }
 
     /* Table */
-    .table-container { margin-top: 12px; margin-bottom: 12px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #232526; border-radius: 8px; overflow: hidden; border: 1px solid #444; }
+    .table-container { margin-top: 12px; margin-bottom: 12px; overflow: auto; max-height: 70vh; position: relative; border-radius: 8px; border: 1px solid #444; }
+    table { width: 100%; border-collapse: collapse; background: #232526; }
     thead { background: #1a1b1c; }
     th { 
       padding: 12px 8px; 
@@ -165,6 +169,16 @@
       letter-spacing: 0.5px;
       border-bottom: 2px solid #444;
       text-align: left;
+      position: sticky;
+      top: 0;
+      background: #1a1b1c;
+      z-index: 10;
+    }
+    th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 11;
+      background: #1a1b1c;
     }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { color: #ffc933; }
@@ -174,7 +188,15 @@
       color: #e0e0e0;
       font-size: 13px;
     }
+    td:first-child {
+      position: sticky;
+      left: 0;
+      background: #232526;
+      z-index: 9;
+      font-weight: 500;
+    }
     tr:hover { background: #2a2b2c; }
+    tr:hover td:first-child { background: #2a2b2c; }
     .sortable { cursor: pointer; }
 
     /* Status Messages */
@@ -245,8 +267,8 @@
   <script>
     // --- Google Sign-In for edit access ---
     const BACKEND_VERIFY_URL = window.GAS_WEB_APP_URL;
-    const AUTH_KEY = 'moo_portal_google_auth';
-    const AUTH_EMAIL_KEY = 'moo_portal_google_email';
+    const AUTH_KEY = 'ccc_portal_google_auth';
+    const AUTH_EMAIL_KEY = 'ccc_portal_google_email';
 
     function setReadOnlyMode(enabled) {
       if (enabled) {
@@ -263,15 +285,18 @@
     function updateSignedInBadge(email) {
       const badge = document.getElementById('signedInUserBadge');
       const logoutBtn = document.getElementById('logoutBtn');
+      const signInBtn = document.getElementById('signInManageBtn');
       if (!badge) return;
       if (email) {
-        badge.innerHTML = `<img src="cute_cow.png" alt="User" style="height:16px;width:16px;vertical-align:-3px;margin-right:6px;">${email}`;
+        badge.innerHTML = email;
         badge.style.display = 'inline-block';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
+        if (signInBtn) signInBtn.style.display = 'none';
       } else {
         badge.textContent = '';
         badge.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'none';
+        if (signInBtn) signInBtn.style.display = 'inline-block';
       }
     }
 
@@ -385,8 +410,15 @@
         updateSignedInBadge(email);
       } else {
         setReadOnlyMode(true);
-        if (!document.getElementById('login-overlay')) {
-          showGoogleLogin();
+        updateSignedInBadge(null);
+        let nav = document.querySelector('.tab-nav-container');
+        if (nav && !document.getElementById('signInManageBtn')) {
+          const btn = document.createElement('button');
+          btn.id = 'signInManageBtn';
+          btn.textContent = '🔑 Sign in to Manage';
+          btn.style = 'margin-left:16px;padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;';
+          btn.onclick = showGoogleLogin;
+          nav.appendChild(btn);
         }
       }
     });
@@ -394,7 +426,7 @@
 
   <nav class="tab-nav">
     <div class="tab-nav-container">
-      <div class="nav-brand" id="navBrand"><img src="moo-portal.png" alt="MOO"> MOO Portal</div>
+      <div class="nav-brand" id="navBrand"><img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions</div>
       <div class="tab-buttons">
         <a href="dashboard.html" class="tab-btn" title="Dashboard"><img src="chests.png" alt="Dashboard" class="tab-icon"></a>
         <a href="events.html" class="tab-btn active" title="Events"><img src="events.png" alt="Events" class="tab-icon"></a>
@@ -411,7 +443,7 @@
   </nav>
 
   <div id="events" class="tab-content active">
-    <div class="header"><h1><img src="events.png" alt="Events" class="tab-icon" style="height: 64px; margin-right: 8px;"> Event Management</h1><p>Track clan events and member participation</p></div>
+    <div class="header"><h1><img src="events.png" alt="Events" style="height: 64px; vertical-align: middle; margin-right: 8px;"> Event Management</h1><p>Track clan events and member participation</p></div>
     <div class="tabs-container">
       <div class="tabs">
         <button class="tab active" onclick="EventsTab.switchTab('manageTab', event)">📋 Manage Events</button>
@@ -482,7 +514,7 @@
         <h3 style="margin:0 0 12px 0;">Manage Event Types</h3>
         <div class="event-type-form">
           <h4 style="margin:0 0 8px 0;">Add New Event Type</h4>
-          <div class="form-grid"><div><label for="newEventTypeName">Event Type Name</label><input type="text" id="newEventTypeName" placeholder="e.g., Alliance War"></div><div><label for="newEventTypeMethod">Tracking Method</label><select id="newEventTypeMethod" onchange="EventsTab.updateEventTypeMethod()"><option value="" selected>-- Select Method --</option><option value="chest-based">Chest-Based</option><option value="manual-entry">Manual Entry</option><option value="troop-based">Troop-Based</option></select></div></div>
+          <div class="form-grid"><div><label for="newEventTypeName">Event Type Name</label><input type="text" id="newEventTypeName" placeholder="e.g., Alliance War"></div><div><label for="newEventTypeMethod">Tracking Method</label><select id="newEventTypeMethod" onchange="EventsTab.updateEventTypeMethod()"><option value="" selected>-- Select Method --</option><option value="chest-based">Chest-Based</option><option value="manual-entry">Manual Entry</option><option value="troop-based">Troop-Based</option><option value="period-marker">Period Marker (No Tracking)</option></select></div></div>
           <div id="chestTypeSection" style="display:none; margin-bottom:12px;"><label>Chest Types for This Event Type</label><div id="chestTypesList" style="max-height:200px; overflow-y:auto; border:1px solid #444; border-radius:6px; padding:8px; background:#232526;"><div class="loading" style="padding:20px; text-align:center; color:#e0e0e0;">Loading chest types...</div></div><div class="note">Select which chest types count for this event type.</div></div>
           <div id="troopTargetSection" style="display:none; margin-bottom:12px;">
             <label style="display:block; margin-bottom:8px;">G Level Targets</label>
@@ -549,6 +581,7 @@
       let troopTargetsCache = {};
       let memberJoinDatesMap = {};
 
+
       function init() {
         switchTab('manageTab');
         loadEvents();
@@ -556,6 +589,37 @@
         loadChestTypes();
         loadEventTypes();
         updateEventTypeMethod();
+        // Add event type change handler for Create Event form
+        const eventTypeSelect = document.getElementById('eventType');
+        if (eventTypeSelect) {
+          eventTypeSelect.addEventListener('change', onCreateEventTypeChange);
+        }
+        // Run once on load
+        onCreateEventTypeChange();
+      }
+
+      function onCreateEventTypeChange() {
+        const eventTypeSelect = document.getElementById('eventType');
+        const startDateInput = document.getElementById('eventStartDate');
+        const endDateInput = document.getElementById('eventEndDate');
+        if (!eventTypeSelect || !startDateInput || !endDateInput) return;
+        // Find selected event type's method
+        const selectedType = eventTypeSelect.value;
+        let method = '';
+        if (selectedType && Array.isArray(eventTypesData)) {
+          const found = eventTypesData.find(et => et.name === selectedType);
+          if (found) method = found.trackingMethod || found.participationMethod || '';
+        }
+        // If period-marker, always enable and require dates
+        if (method === 'period-marker') {
+          startDateInput.disabled = false;
+          endDateInput.disabled = false;
+          startDateInput.required = true;
+          endDateInput.required = true;
+        } else {
+          startDateInput.required = false;
+          endDateInput.required = false;
+        }
       }
 
       function switchTab(tabId, evt) {
@@ -605,9 +669,24 @@
         const tbody = document.getElementById('eventsTableBody');
         tbody.innerHTML = '';
         eventsData.forEach(event => {
-          const methodBadge = event.participationMethod === 'chest-based' ? '<span class="badge chest">Chest-Based</span>' : '<span class="badge manual">Manual Entry</span>';
+          let methodBadge;
+          if (event.participationMethod === 'chest-based') {
+            methodBadge = '<span class="badge chest">Chest-Based</span>';
+          } else if (event.participationMethod === 'manual-entry') {
+            methodBadge = '<span class="badge manual">Manual Entry</span>';
+          } else if (event.participationMethod === 'period-marker') {
+            methodBadge = '<span class="badge" style="background:#9c27b0;">Period Marker</span>';
+          } else {
+            methodBadge = '<span class="badge">' + escapeHtml(event.participationMethod || 'Unknown') + '</span>';
+          }
+          
+          // Only show View button for events that track participation
+          const viewButton = event.participationMethod === 'period-marker' 
+            ? '' 
+            : `<button class="btn action-btn" onclick="EventsTab.viewEventParticipation('${escapeHtml(event.eventName)}')">👁 View</button>`;
+          
           const row = document.createElement('tr');
-          row.innerHTML = `<td class="event-name">${escapeHtml(event.eventName)}</td><td>${escapeHtml(event.eventType)}</td><td>${event.startDate}</td><td>${event.endDate}</td><td>${methodBadge}</td><td><button class="btn action-btn" onclick="EventsTab.viewEventParticipation('${escapeHtml(event.eventName)}')">👁 View</button><button class="btn action-btn" onclick="EventsTab.editEvent('${escapeHtml(event.eventName)}')">✏️ Edit</button><button class="btn action-btn btn-secondary" onclick="EventsTab.deleteEvent('${escapeHtml(event.eventName)}')">🗑️ Delete</button></td>`;
+          row.innerHTML = `<td class="event-name">${escapeHtml(event.eventName)}</td><td>${escapeHtml(event.eventType)}</td><td>${event.startDate}</td><td>${event.endDate}</td><td>${methodBadge}</td><td>${viewButton}<button class="btn action-btn" onclick="EventsTab.editEvent('${escapeHtml(event.eventName)}')">✏️ Edit</button><button class="btn action-btn btn-secondary" onclick="EventsTab.deleteEvent('${escapeHtml(event.eventName)}')">🗑️ Delete</button></td>`;
           tbody.appendChild(row);
         });
       }
