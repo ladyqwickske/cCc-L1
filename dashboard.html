@@ -893,45 +893,60 @@
       document.querySelectorAll(`[data-type="${typeName}"]`).forEach(el=>{ if (el.classList.contains('level-header')||el.classList.contains('level-cell')) el.classList.toggle('visible'); });
     }
 
-    function loadLastImportTimestamp() {
-      fetch(window.GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getLastImportTimestamp' })
-      })
-        .then(res => res.json())
-        .then(data => {
-          console.log('[DEBUG] Import timestamp response:', data);
-          const display = document.getElementById('lastImportedDisplay');
-          if (display) {
-            let timestampText = 'No imports yet';
-            if (typeof data === 'string') {
-              timestampText = data;
-            } else if (data && data.success && data.data && data.data.timestamp) {
-              timestampText = data.data.timestamp;
-            } else if (data && data.timestamp) {
-              timestampText = data.timestamp;
-            } else if (data && data.data && typeof data.data === 'string') {
-              timestampText = data.data;
-            }
-
-            const normalized = String(timestampText || '').toLowerCase();
-            const isMissing = !timestampText || normalized === 'no imports yet' || normalized === 'never' || normalized === 'unknown' || normalized.startsWith('error');
-
-            if (isMissing) {
-              display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
-            } else {
-              display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
-            }
-          }
-        })
-        .catch(e => {
-          console.error('Error loading import timestamp:', e);
-          const display = document.getElementById('lastImportedDisplay');
-          if (display) display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
+    function displayPlayerStats(stats) {
+      const container = document.getElementById('playerList');
+      console.log('[DEBUG] displayPlayerStats received:', stats, 'type:', typeof stats, 'isArray:', Array.isArray(stats));
+      // Normalize response format
+      const norm = normalizeResponse(stats);
+      let playerArray = norm.data || norm.playerStats || stats;
+      // If it's an object with summary data (totalChests, totalMembers), ignore it - wrong handler
+      if (playerArray && typeof playerArray === 'object' && !Array.isArray(playerArray) && ('totalChests' in playerArray || 'totalMembers' in playerArray)) {
+        console.warn('[DEBUG] displayPlayerStats ignoring summary data (wrong handler called)');
+        return;
+      }
+      // Ensure we have an array
+      if (!Array.isArray(playerArray)) playerArray = [];
+      if (playerArray.length === 0) { container.innerHTML = '<div class="loading">No data found</div>'; return; }
+      const typeData = {};
+      playerArray.forEach(player => {
+        if (player.chestsByTypeGrouped) {
+          Object.entries(player.chestsByTypeGrouped).forEach(([type,data]) => {
+            if (!typeData[type]) typeData[type] = { levels:new Set(), total:0 };
+            if (data.levels) Object.keys(data.levels).forEach(level => typeData[type].levels.add(level));
+            typeData[type].total += data.total || 0;
+          });
+        }
+      });
+      const sortedTypes = Object.entries(typeData).sort((a,b)=>b[1].total-a[1].total).map(([name,data])=>({ name, levels: Array.from(data.levels).map(l=>parseInt(l)).sort((a,b)=>a-b) }));
+      let headerHtml = '<div class="table-header">';
+      headerHtml += '<div class="header-cell rank-col">Rank</div><div class="header-cell">Player</div><div class="header-cell">Pts</div><div class="header-cell">Total</div>';
+      sortedTypes.forEach(type=>{ headerHtml += `<div class="header-cell type-total-header" onclick="toggleType('${type.name}')" data-type="${type.name}"><span class="toggle-icon">▶</span>${type.name}</div>`; type.levels.forEach(level=>{ headerHtml += `<div class="header-cell level-header" data-type="${type.name}" data-level="${level}">Lvl ${level}</div>`;}); });
+      headerHtml += '</div>';
+      let rowsHtml = '';
+      playerArray.forEach((player,idx)=>{
+        const commonCryptInfo = player.chestsByTypeGrouped?.['Common Crypt'];
+        const totalPointsVal = player.totalPoints || 0;
+        const pointsClass = totalPointsVal >= 10000 ? 'player-green' : (totalPointsVal >= 5000 ? 'player-orange' : 'player-red');
+        rowsHtml += '<div class="player-row">';
+        rowsHtml += `<div class="cell rank-col">${idx+1}</div><div class="cell ${pointsClass}">${player.player}</div><div class="cell">${totalPointsVal || '-'}</div>`;
+        // Calculate total chests: use totalChests if available, otherwise sum from chestsByTypeGrouped (don't double-count eventChests!)
+        let totalChests = player.totalChests || 0;
+        if (totalChests === 0 && player.chestsByTypeGrouped) {
+          Object.values(player.chestsByTypeGrouped).forEach(t=>{ totalChests += t.total || 0; });
+        }
+        rowsHtml += `<div class="cell">${totalChests||'-'}</div>`;
+        sortedTypes.forEach(type=>{
+          const typeInfo = player.chestsByTypeGrouped?.[type.name]; const totalCount = typeInfo?.total || 0;
+          const totalClass = (type.name === 'Common Crypt' && ((commonCryptInfo?.levels?.['5']||0)>0 || (commonCryptInfo?.levels?.['10']||0)>0)) ? 'player-red' : '';
+          rowsHtml += `<div class="cell" data-type="${type.name}"><span class="${totalCount===0?'count-zero':''} ${totalClass}">${totalCount||'-'}</span></div>`;
+          type.levels.forEach(level=>{
+            const levelCount = typeInfo?.levels?.[level] || 0;
+            const badCrypt = (type.name === 'Common Crypt' && (level === 5 || level === 10) && levelCount > 0) ? 'player-red' : '';
+            rowsHtml += `<div class="cell level-cell" data-type="${type.name}" data-level="${level}"><span class="${levelCount===0?'count-zero':''} ${badCrypt}">${levelCount||'-'}</span></div>`;
+          });
         });
+        rowsHtml += '</div>';
+      });
+      container.innerHTML = `<div class="chest-table">${headerHtml}${rowsHtml}</div>`;
     }
-  </script>
-</body>
-</html>
 
