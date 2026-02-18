@@ -435,7 +435,7 @@
 
     <div class="period-tabs">
       <button class="period-btn active" onclick="ProgressTab.setPeriod('week')" data-period="week">📅 This Week</button>
-      <button class="period-btn" onclick="ProgressTab.setPeriod('prevweek')" data-period="prevweek">⬅️ Previous Week</button>
+      <button class="period-btn" onclick="ProgressTab.setPeriod('prevweek')" data-period="prevweek">⬅️ Previous Period</button>
       <button class="period-btn" onclick="ProgressTab.setPeriod('month')" data-period="month">📆 This Month</button>
       <button class="period-btn" onclick="ProgressTab.setPeriod('2months')" data-period="2months">📊 Last 2 Months</button>
     </div>
@@ -619,7 +619,7 @@
           start.setDate(start.getDate() - 7);
           const end = new Date(start);
           end.setDate(end.getDate() + 6);
-          periodLabel = `Viewing: Previous Week (Sun–Sat): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+          periodLabel = `Viewing: Previous Period: ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
         } else if (period === 'month') {
           const start = new Date(today.getFullYear(), today.getMonth(), 1);
           const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);

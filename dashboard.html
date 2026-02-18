@@ -396,8 +396,8 @@
     <div class="date-filter">
       <div class="date-filter-label">📅 Date Range Filter</div>
       <div class="date-preset-btns">
-        <button class="preset-btn" data-preset="lastday" onclick="setDateRange('lastday')">Active Period (Sun–Sat)</button>
-        <button class="preset-btn" data-preset="prevweek" onclick="setDateRange('prevweek')">Previous Week (Sun–Sat)</button>
+        <button class="preset-btn" data-preset="lastday" onclick="setDateRange('lastday')">Active Period</button>
+        <button class="preset-btn" data-preset="prevweek" onclick="setDateRange('prevweek')">Previous Period</button>
         <button class="preset-btn" data-preset="currentmonth" onclick="setDateRange('currentmonth')">Current Month</button>
         <button class="preset-btn" data-preset="lastmonth" onclick="setDateRange('lastmonth')">Last Month</button>
       </div>
@@ -476,33 +476,229 @@
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[data-preset="${preset}"]`)?.classList.add('active');
       if (preset === 'lastday') {
-        // Active Period: Sunday to Saturday (current week)
-        const start = new Date(today);
-        // Move to last Sunday (0 = Sunday)
-        start.setDate(start.getDate() - start.getDay());
-        const end = new Date(start);
-        // Saturday (6 days after start)
-        end.setDate(start.getDate() + 6);
-        startInput.value = formatDate(start);
-        endInput.value = formatDate(end);
-        displayElement.textContent = `Viewing: Active Period (Sun–Sat): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-        loadDashboard();
+        // Active Period: Based on Ruthless Slaughter events
+        displayElement.textContent = 'Loading Active Period...';
+        fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getAllEvents' })
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (!result || !result.success) {
+              console.error('Error loading events for active period');
+              // Fallback to Sunday-Saturday
+              const start = new Date(today);
+              start.setDate(start.getDate() - start.getDay());
+              const end = new Date(start);
+              end.setDate(start.getDate() + 6);
+              startInput.value = formatDate(start);
+              endInput.value = formatDate(end);
+              displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              loadDashboard();
+              return;
+            }
+            
+            // Filter for Ruthless Slaughter events (period markers)
+            const allEvents = result.events || [];
+            const periodEvents = allEvents.filter(e => 
+              e.eventType === 'Ruthless Slaughter' || e.participationMethod === 'period-marker'
+            );
+            
+            if (periodEvents.length === 0) {
+              console.warn('No Ruthless Slaughter events found, using fallback');
+              // Fallback to Sunday-Saturday
+              const start = new Date(today);
+              start.setDate(start.getDate() - start.getDay());
+              const end = new Date(start);
+              end.setDate(start.getDate() + 6);
+              startInput.value = formatDate(start);
+              endInput.value = formatDate(end);
+              displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              loadDashboard();
+              return;
+            }
+            
+            // Sort events by start date
+            periodEvents.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            // Find the current active period
+            const todayStr = formatDate(today);
+            let activePeriod = null;
+            
+            // Look for the event that is currently active (today is between start and end)
+            for (let i = 0; i < periodEvents.length; i++) {
+              const event = periodEvents[i];
+              if (event.startDate <= todayStr && event.endDate >= todayStr) {
+                activePeriod = event;
+                break;
+              }
+            }
+            
+            // If no active event, find the most recent past event and next upcoming event
+            if (!activePeriod) {
+              let lastPastEvent = null;
+              let nextFutureEvent = null;
+              
+              for (const event of periodEvents) {
+                if (event.endDate < todayStr) {
+                  lastPastEvent = event;
+                } else if (event.startDate > todayStr && !nextFutureEvent) {
+                  nextFutureEvent = event;
+                }
+              }
+              
+              // If we're between two events, use the end of the last and start of the next
+              if (lastPastEvent && nextFutureEvent) {
+                const start = new Date(lastPastEvent.endDate);
+                start.setDate(start.getDate() + 1); // Day after last period ended
+                const end = new Date(nextFutureEvent.startDate);
+                end.setDate(end.getDate() - 1); // Day before next period starts
+                startInput.value = formatDate(start);
+                endInput.value = formatDate(end);
+                displayElement.textContent = `Viewing: Active Period (Between Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+                loadDashboard();
+                return;
+              }
+              
+              // Otherwise use last event as reference
+              activePeriod = lastPastEvent || periodEvents[periodEvents.length - 1];
+            }
+            
+            // Use the active period dates
+            const start = new Date(activePeriod.startDate);
+            const end = new Date(activePeriod.endDate);
+            startInput.value = formatDate(start);
+            endInput.value = formatDate(end);
+            displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            loadDashboard();
+          })
+          .catch(error => {
+            console.error('Error fetching events:', error);
+            // Fallback to Sunday-Saturday
+            const start = new Date(today);
+            start.setDate(start.getDate() - start.getDay());
+            const end = new Date(start);
+            end.setDate(start.getDate() + 6);
+            startInput.value = formatDate(start);
+            endInput.value = formatDate(end);
+            displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            loadDashboard();
+          });
         return;
       }
       if (preset === 'prevweek') {
-        // Previous Week: Sunday to Saturday (last week)
-        const start = new Date(today);
-        // Move to last Sunday (0 = Sunday)
-        start.setDate(start.getDate() - start.getDay());
-        // Go back one full week
-        start.setDate(start.getDate() - 7);
-        const end = new Date(start);
-        // Saturday (6 days after start)
-        end.setDate(start.getDate() + 6);
-        startInput.value = formatDate(start);
-        endInput.value = formatDate(end);
-        displayElement.textContent = `Viewing: Previous Week (Sun–Sat): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-        loadDashboard();
+        // Previous Period: Based on Ruthless Slaughter events
+        displayElement.textContent = 'Loading Previous Period...';
+        fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getAllEvents' })
+        })
+          .then(res => res.json())
+          .then(result => {
+            if (!result || !result.success || !result.events || result.events.length === 0) {
+              // Fallback to previous Sunday-Saturday
+              const start = new Date(today);
+              start.setDate(start.getDate() - start.getDay() - 7);
+              const end = new Date(start);
+              end.setDate(end.getDate() + 6);
+              startInput.value = formatDate(start);
+              endInput.value = formatDate(end);
+              displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              loadDashboard();
+              return;
+            }
+            
+            // Filter for Ruthless Slaughter events (period markers)
+            const allEvents = result.events || [];
+            const periodEvents = allEvents.filter(e => 
+              e.eventType === 'Ruthless Slaughter' || e.participationMethod === 'period-marker'
+            );
+            
+            if (periodEvents.length === 0) {
+              // Fallback to previous Sunday-Saturday
+              const start = new Date(today);
+              start.setDate(start.getDate() - start.getDay() - 7);
+              const end = new Date(start);
+              end.setDate(end.getDate() + 6);
+              startInput.value = formatDate(start);
+              endInput.value = formatDate(end);
+              displayElement.textContent = `Viewing: Previous Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              loadDashboard();
+              return;
+            }
+            
+            // Sort events by start date
+            periodEvents.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            
+            const todayStr = formatDate(today);
+            
+            // Find the current active period first
+            let activePeriod = null;
+            for (let i = 0; i < periodEvents.length; i++) {
+              const event = periodEvents[i];
+              if (event.startDate <= todayStr && event.endDate >= todayStr) {
+                activePeriod = event;
+                break;
+              }
+            }
+            
+            // If no active period, find the most recent past event
+            if (!activePeriod) {
+              for (let i = periodEvents.length - 1; i >= 0; i--) {
+                if (periodEvents[i].endDate < todayStr) {
+                  activePeriod = periodEvents[i];
+                  break;
+                }
+              }
+            }
+            
+            // Find the event before the active period
+            let previousPeriod = null;
+            if (activePeriod) {
+              const activeStartStr = activePeriod.startDate;
+              for (let i = periodEvents.length - 1; i >= 0; i--) {
+                if (periodEvents[i].endDate < activeStartStr) {
+                  previousPeriod = periodEvents[i];
+                  break;
+                }
+              }
+            }
+            
+            if (!previousPeriod) {
+              // Fallback to previous Sunday-Saturday
+              const start = new Date(today);
+              start.setDate(start.getDate() - start.getDay() - 7);
+              const end = new Date(start);
+              end.setDate(end.getDate() + 6);
+              startInput.value = formatDate(start);
+              endInput.value = formatDate(end);
+              displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              loadDashboard();
+              return;
+            }
+            
+            // Use the previous period dates
+            const start = new Date(previousPeriod.startDate);
+            const end = new Date(previousPeriod.endDate);
+            startInput.value = formatDate(start);
+            endInput.value = formatDate(end);
+            displayElement.textContent = `Viewing: Previous Period (${previousPeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            loadDashboard();
+          })
+          .catch(error => {
+            console.error('Error fetching events:', error);
+            // Fallback to previous Sunday-Saturday
+            const start = new Date(today);
+            start.setDate(start.getDate() - start.getDay() - 7);
+            const end = new Date(start);
+            end.setDate(end.getDate() + 6);
+            startInput.value = formatDate(start);
+            endInput.value = formatDate(end);
+            displayElement.textContent = `Viewing: Previous Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            loadDashboard();
+          });
         return;
       }
       if (preset === 'currentmonth') {

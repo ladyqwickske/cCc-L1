@@ -514,7 +514,7 @@
         <h3 style="margin:0 0 12px 0;">Manage Event Types</h3>
         <div class="event-type-form">
           <h4 style="margin:0 0 8px 0;">Add New Event Type</h4>
-          <div class="form-grid"><div><label for="newEventTypeName">Event Type Name</label><input type="text" id="newEventTypeName" placeholder="e.g., Alliance War"></div><div><label for="newEventTypeMethod">Tracking Method</label><select id="newEventTypeMethod" onchange="EventsTab.updateEventTypeMethod()"><option value="" selected>-- Select Method --</option><option value="chest-based">Chest-Based</option><option value="manual-entry">Manual Entry</option><option value="troop-based">Troop-Based</option></select></div></div>
+          <div class="form-grid"><div><label for="newEventTypeName">Event Type Name</label><input type="text" id="newEventTypeName" placeholder="e.g., Alliance War"></div><div><label for="newEventTypeMethod">Tracking Method</label><select id="newEventTypeMethod" onchange="EventsTab.updateEventTypeMethod()"><option value="" selected>-- Select Method --</option><option value="chest-based">Chest-Based</option><option value="manual-entry">Manual Entry</option><option value="troop-based">Troop-Based</option><option value="period-marker">Period Marker (No Tracking)</option></select></div></div>
           <div id="chestTypeSection" style="display:none; margin-bottom:12px;"><label>Chest Types for This Event Type</label><div id="chestTypesList" style="max-height:200px; overflow-y:auto; border:1px solid #444; border-radius:6px; padding:8px; background:#232526;"><div class="loading" style="padding:20px; text-align:center; color:#e0e0e0;">Loading chest types...</div></div><div class="note">Select which chest types count for this event type.</div></div>
           <div id="troopTargetSection" style="display:none; margin-bottom:12px;">
             <label style="display:block; margin-bottom:8px;">G Level Targets</label>
@@ -637,9 +637,24 @@
         const tbody = document.getElementById('eventsTableBody');
         tbody.innerHTML = '';
         eventsData.forEach(event => {
-          const methodBadge = event.participationMethod === 'chest-based' ? '<span class="badge chest">Chest-Based</span>' : '<span class="badge manual">Manual Entry</span>';
+          let methodBadge;
+          if (event.participationMethod === 'chest-based') {
+            methodBadge = '<span class="badge chest">Chest-Based</span>';
+          } else if (event.participationMethod === 'manual-entry') {
+            methodBadge = '<span class="badge manual">Manual Entry</span>';
+          } else if (event.participationMethod === 'period-marker') {
+            methodBadge = '<span class="badge" style="background:#9c27b0;">Period Marker</span>';
+          } else {
+            methodBadge = '<span class="badge">' + escapeHtml(event.participationMethod || 'Unknown') + '</span>';
+          }
+          
+          // Only show View button for events that track participation
+          const viewButton = event.participationMethod === 'period-marker' 
+            ? '' 
+            : `<button class="btn action-btn" onclick="EventsTab.viewEventParticipation('${escapeHtml(event.eventName)}')">👁 View</button>`;
+          
           const row = document.createElement('tr');
-          row.innerHTML = `<td class="event-name">${escapeHtml(event.eventName)}</td><td>${escapeHtml(event.eventType)}</td><td>${event.startDate}</td><td>${event.endDate}</td><td>${methodBadge}</td><td><button class="btn action-btn" onclick="EventsTab.viewEventParticipation('${escapeHtml(event.eventName)}')">👁 View</button><button class="btn action-btn" onclick="EventsTab.editEvent('${escapeHtml(event.eventName)}')">✏️ Edit</button><button class="btn action-btn btn-secondary" onclick="EventsTab.deleteEvent('${escapeHtml(event.eventName)}')">🗑️ Delete</button></td>`;
+          row.innerHTML = `<td class="event-name">${escapeHtml(event.eventName)}</td><td>${escapeHtml(event.eventType)}</td><td>${event.startDate}</td><td>${event.endDate}</td><td>${methodBadge}</td><td>${viewButton}<button class="btn action-btn" onclick="EventsTab.editEvent('${escapeHtml(event.eventName)}')">✏️ Edit</button><button class="btn action-btn btn-secondary" onclick="EventsTab.deleteEvent('${escapeHtml(event.eventName)}')">🗑️ Delete</button></td>`;
           tbody.appendChild(row);
         });
       }
