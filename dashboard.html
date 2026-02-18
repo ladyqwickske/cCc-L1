@@ -197,6 +197,15 @@
         if (document.body) document.body.classList.remove('read-only-mode');
         console.log('[INFO] Portal loaded in EDITABLE mode');
       }
+      // Extra logging after mode is set
+      setTimeout(() => {
+        console.log('[DEBUG] Body classList:', document.body ? document.body.classList.toString() : 'no body');
+        console.log('[DEBUG] DocumentElement classList:', document.documentElement.classList.toString());
+        const badge = document.getElementById('readOnlyBadge');
+        if (badge) console.log('[DEBUG] readOnlyBadge display:', badge.style.display);
+        const signedInUserBadge = document.getElementById('signedInUserBadge');
+        if (signedInUserBadge) console.log('[DEBUG] signedInUserBadge display:', signedInUserBadge.style.display, 'content:', signedInUserBadge.textContent);
+      }, 100);
     }
 
     function updateSignedInBadge(email) {
@@ -209,11 +218,13 @@
         badge.style.display = 'inline-block';
         if (logoutBtn) logoutBtn.style.display = 'inline-block';
         if (signInBtn) signInBtn.style.display = 'none';
+        console.log('[DEBUG] updateSignedInBadge: signed in as', email);
       } else {
         badge.textContent = '';
         badge.style.display = 'none';
         if (logoutBtn) logoutBtn.style.display = 'none';
         if (signInBtn) signInBtn.style.display = 'inline-block';
+        console.log('[DEBUG] updateSignedInBadge: signed out');
       }
     }
 
@@ -222,6 +233,7 @@
       try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch (e) {}
       setReadOnlyMode(true);
       updateSignedInBadge(null);
+      console.log('[DEBUG] handleLogout: user logged out, set to read-only');
       setTimeout(() => { window.location.reload(); }, 200);
     }
 
@@ -258,6 +270,7 @@
             try { localStorage.removeItem(AUTH_KEY); } catch (e) {}
             try { localStorage.removeItem(AUTH_EMAIL_KEY); } catch (e) {}
             updateSignedInBadge(null);
+            console.log('[DEBUG] Guest mode selected: set to read-only');
           };
         }
           // Initialize Google Sign-In library before rendering button
@@ -330,6 +343,7 @@
           updateSignedInBadge(email);
           document.getElementById('login-overlay').remove();
           setReadOnlyMode(false);
+          console.log('[DEBUG] Google sign-in success: set to editable');
           setTimeout(() => { window.location.reload(); }, 200);
         } else {
           setReadOnlyMode(true);
