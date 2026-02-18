@@ -846,14 +846,20 @@
           const display = document.getElementById('lastImportedDisplay');
           if (display) {
             let timestampText = 'No imports yet';
-            if (data && data.success && data.data && data.data.timestamp) {
+            if (typeof data === 'string') {
+              timestampText = data;
+            } else if (data && data.success && data.data && data.data.timestamp) {
               timestampText = data.data.timestamp;
             } else if (data && data.timestamp) {
               timestampText = data.timestamp;
             } else if (data && data.data && typeof data.data === 'string') {
               timestampText = data.data;
             }
-            if (timestampText === 'No imports yet') {
+
+            const normalized = String(timestampText || '').toLowerCase();
+            const isMissing = !timestampText || normalized === 'no imports yet' || normalized === 'never' || normalized === 'unknown' || normalized.startsWith('error');
+
+            if (isMissing) {
               display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
             } else {
               display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
