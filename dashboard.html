@@ -472,7 +472,7 @@
     
     function setDateRange(preset) {
       // Always use the new splits sheet names for splits display
-      window.currentSplitsSheet = (preset === 'lastday') ? 'Splits_Active Period' : (preset === 'prevweek') ? 'Splits_Previous Period' : null;
+      window.currentSplitsSheet = (preset === 'lastday') ? 'Splits_ActiveWeek' : (preset === 'prevweek') ? 'Splits_PreviousWeek' : null;
       const today = new Date();
       const startInput = document.getElementById('startDate');
       const endInput = document.getElementById('endDate');
@@ -737,7 +737,7 @@
     
     function loadDashboard() {
       // Always use the new splits sheet names for splits display
-      const splitsSheetName = window.currentSplitsSheet || 'Splits_Active Period';
+      const splitsSheetName = window.currentSplitsSheet || 'Splits_ActiveWeek';
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
       document.getElementById('playerList').innerHTML = '<div class="loading">Loading...</div>';
