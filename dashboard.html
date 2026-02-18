@@ -734,6 +734,10 @@
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
       document.getElementById('playerList').innerHTML = '<div class="loading">Loading...</div>';
+      
+      // Store for re-rendering after splits load
+      let lastPlayerStats = null;
+      
       // Use CORS proxy (Cloudflare Worker) for API calls
       // 1. Get summary
       fetch(window.GAS_WEB_APP_URL, {
@@ -752,7 +756,10 @@
         body: JSON.stringify({ action: 'getPlayerStats', startDate, endDate })
       })
         .then(res => res.json())
-        .then(displayPlayerStats)
+        .then(stats => {
+          lastPlayerStats = stats;
+          displayPlayerStats(stats);
+        })
         .catch(e => {
           console.error('Stats error:', e);
           document.getElementById('playerList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading player stats</div>';
@@ -768,6 +775,11 @@
         .then(splits => {
           console.log('[DEBUG] getSplits response:', splits);
           window.currentSplits = splits || {};
+          // Re-render player stats now that splits are available
+          if (lastPlayerStats) {
+            console.log('[DEBUG] Re-rendering player stats with splits data');
+            displayPlayerStats(lastPlayerStats);
+          }
         })
         .catch(e => console.error('Splits error:', e));
     }
@@ -797,6 +809,29 @@
       if (!Array.isArray(playerArray)) playerArray = [];
       
       if (playerArray.length === 0) { container.innerHTML = '<div class="loading">No data found</div>'; return; }
+      
+      // Merge chest splits data into player stats (if available)
+      if (window.currentSplits && typeof window.currentSplits === 'object') {
+        console.log('[DEBUG] Merging splits data into player stats');
+        playerArray = playerArray.map(player => {
+          const splits = window.currentSplits[player.player];
+          if (splits) {
+            console.log(`[DEBUG] Found splits for ${player.player}:`, splits);
+            // Merge splits data into player object
+            return {
+              ...player,
+              pointChests: splits.pointChests || 0,
+              eventChests: splits.eventChests || 0,
+              chestsByType: splits.chestsByType || {},
+              chestsByTypeGrouped: splits.chestsByTypeGrouped || player.chestsByTypeGrouped || {}
+            };
+          }
+          return player;
+        });
+        console.log('[DEBUG] Player stats after merge:', playerArray.length, 'players');
+      } else {
+        console.log('[DEBUG] No splits data available, using player stats as-is');
+      }
       const typeData = {};
       playerArray.forEach(player => {
         if (player.chestsByTypeGrouped) {
