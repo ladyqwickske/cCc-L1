@@ -397,7 +397,7 @@
         <button class="preset-btn" data-preset="lastmonth" onclick="setDateRange('lastmonth')">Last Month</button>
       </div>
       <div class="date-range-display" id="dateRangeDisplay">Viewing: All Time</div>
-      <div class="date-range-display" id="lastUpdatedDisplay" style="font-size: 12px; color: #5f6368; margin-top: 8px;">Last Date Available: Loading...</div>
+      <div class="date-range-display" id="lastImportedDisplay" style="font-size: 12px; color: #5f6368; margin-top: 8px;">Last Imported: Loading...</div>
       <input type="date" id="startDate" style="display:none;">
       <input type="date" id="endDate" style="display:none;">
     </div>
@@ -449,7 +449,10 @@
     }
 
     // Dashboard
-    window.onload = function() { setDateRange('lastday'); };
+    window.onload = function() { 
+      setDateRange('lastday');
+      loadLastImportTimestamp();
+    };
     
     function setDateRange(preset) {
       const today = new Date();
@@ -552,13 +555,6 @@
       document.getElementById('totalMembers').textContent = data.totalMembers || '0';
       document.getElementById('totalPlayers').textContent = data.totalPlayers || '0';
       document.getElementById('totalPoints').textContent = data.totalPoints ? data.totalPoints.toLocaleString() : '0';
-      if (data.lastAvailableDate) {
-        const dateObj = new Date(data.lastAvailableDate + 'T00:00:00');
-        const dateStr = dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-        document.getElementById('lastUpdatedDisplay').textContent = `Last Date Available: ${dateStr} • Weekly target: 10 000 points`;
-      } else {
-        document.getElementById('lastUpdatedDisplay').textContent = 'Last Date Available: No data available • Weekly target: 10 000 points';
-      }
     }
     
     function displayPlayerStats(stats) {
@@ -627,6 +623,32 @@
       const isExpanded = expandedTypes.has(typeName);
       if (isExpanded) { expandedTypes.delete(typeName); header.classList.remove('expanded'); } else { expandedTypes.add(typeName); header.classList.add('expanded'); }
       document.querySelectorAll(`[data-type="${typeName}"]`).forEach(el=>{ if (el.classList.contains('level-header')||el.classList.contains('level-cell')) el.classList.toggle('visible'); });
+    }
+
+    function loadLastImportTimestamp() {
+      fetch(window.GAS_WEB_APP_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'getLastImportTimestamp' })
+      })
+        .then(res => res.json())
+        .then(data => {
+          const display = document.getElementById('lastImportedDisplay');
+          if (display) {
+            if (data && data.data && data.data.timestamp) {
+              display.textContent = `Last Imported: ${data.data.timestamp}`;
+            } else if (data && data.timestamp) {
+              display.textContent = `Last Imported: ${data.timestamp}`;
+            } else {
+              display.textContent = 'Last Imported: No imports yet';
+            }
+          }
+        })
+        .catch(e => {
+          console.error('Error loading import timestamp:', e);
+          const display = document.getElementById('lastImportedDisplay');
+          if (display) display.textContent = 'Last Imported: Unable to load';
+        });
     }
   </script>
 </body>
