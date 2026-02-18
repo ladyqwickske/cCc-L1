@@ -744,13 +744,20 @@
       document.getElementById('splitsList').innerHTML = '<div class="loading">Loading chest splits...</div>';
 
       // 1. Get splits
+      console.log('[DEBUG] Fetching splits with sheetName:', splitsSheetName);
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getSplits', sheetName: splitsSheetName })
       })
-        .then(res => res.json())
-        .then(displaySplits)
+        .then(res => {
+          console.log('[DEBUG] Splits fetch response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('[DEBUG] Splits fetch data:', data);
+          displaySplits(data);
+        })
         .catch(e => {
           console.error('Splits error:', e);
           document.getElementById('splitsList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading chest splits</div>';
@@ -781,12 +788,16 @@
     }
         function displaySplits(data) {
           const container = document.getElementById('splitsList');
+          console.log('[DEBUG] displaySplits raw input:', data);
           // Normalize response
           const norm = normalizeResponse(data);
+          console.log('[DEBUG] displaySplits normalized:', norm);
           let rows = norm.data || norm.splits || data;
           if (!Array.isArray(rows)) rows = [];
           if (rows.length === 0) {
-            container.innerHTML = '<div class="loading">No splits data found</div>';
+            container.innerHTML = '<div class="loading">No splits data found';
+            if (norm && norm.error) container.innerHTML += `<br><span style=\"color:#d93025;\">Error: ${norm.error}</span>`;
+            container.innerHTML += '</div>';
             return;
           }
           // Assume first row is header if it contains strings
