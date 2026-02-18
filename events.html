@@ -818,7 +818,8 @@
 
       function submitCreateEvent() {
         const eventName = document.getElementById('eventName').value.trim();
-        const eventType = document.getElementById('eventType').value;
+        const eventTypeSelect = document.getElementById('eventType');
+        const eventType = eventTypeSelect ? eventTypeSelect.value : '';
         const startDate = document.getElementById('eventStartDate').value;
         const endDate = document.getElementById('eventEndDate').value;
         const status = document.getElementById('createStatus');
@@ -827,10 +828,13 @@
         if (!eventName) { status.textContent = 'Please enter an event name.'; status.classList.add('err'); return; }
         if (!eventType) { status.textContent = 'Please select an event type.'; status.classList.add('err'); return; }
         if (!startDate || !endDate) { status.textContent = 'Please select start and end dates.'; status.classList.add('err'); return; }
-        
+
+        // Log values for debugging
+        console.log('submitCreateEvent:', { eventName, eventType, startDate, endDate });
+
         const isEditing = editingEventName !== null;
         status.textContent = isEditing ? 'Updating event...' : 'Creating event...';
-        
+
         const onSuccess = (result) => {
           if (result && result.success) {
             status.textContent = result.message;
@@ -847,22 +851,26 @@
             status.classList.add('err');
           }
         };
-        
+
         const onError = (error) => { status.textContent = 'Error: ' + error.message; status.classList.add('err'); };
-        
-        if (isEditing) {
-          fetch(window.GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'updateEvent', args: [editingEventName, eventName, eventType, startDate, endDate] })
-          }).then(res => res.json()).then(onSuccess).catch(onError);
-        } else {
-          fetch(window.GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'addEvent', args: [eventName, eventType, startDate, endDate] })
-          }).then(res => res.json()).then(onSuccess).catch(onError);
+
+        const payload = {
+          action: isEditing ? 'updateEvent' : 'addEvent',
+          args: isEditing
+            ? [editingEventName, eventName, eventType, startDate, endDate]
+            : [eventName, eventType, startDate, endDate]
+        };
+        // Extra validation: show error if eventType is undefined
+        if (!eventType || eventType === 'undefined') {
+          status.textContent = 'Event type is undefined. Please select a valid event type.';
+          status.classList.add('err');
+          return;
         }
+        fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(res => res.json()).then(onSuccess).catch(onError);
       }
 
       function onChestEventSelected() {
