@@ -480,11 +480,13 @@
 
     // Dashboard
     window.onload = function() { 
+      console.log('[DEBUG] window.onload triggered');
       setDateRange('lastday');
       loadLastImportTimestamp();
     };
     
     function setDateRange(preset) {
+      console.log('[DEBUG] setDateRange called with preset:', preset);
       // Always use the new splits sheet names for splits display
       window.currentSplitsSheet = (preset === 'lastday') ? 'Splits_ActiveWeek' : (preset === 'prevweek') ? 'Splits_PreviousWeek' : null;
       const today = new Date();
@@ -503,6 +505,7 @@
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[data-preset="${preset}"]`)?.classList.add('active');
       if (preset === 'lastday') {
+        console.log('[DEBUG] setDateRange: loading Active Period');
         // Active Period: Based on Ruthless Slaughter events
         displayElement.textContent = 'Loading Active Period...';
         fetch(window.GAS_WEB_APP_URL, {
@@ -522,6 +525,7 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              console.log('[DEBUG] setDateRange: fallback to Sunday-Saturday, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -542,6 +546,7 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              console.log('[DEBUG] setDateRange: No Ruthless Slaughter events, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -584,6 +589,7 @@
                 startInput.value = formatDate(start);
                 endInput.value = formatDate(end);
                 displayElement.textContent = `Viewing: Active Period (Between Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+                console.log('[DEBUG] setDateRange: Between Events, calling loadDashboard');
                 loadDashboard();
                 return;
               }
@@ -598,6 +604,7 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            console.log('[DEBUG] setDateRange: Using active period, calling loadDashboard');
             loadDashboard();
           })
           .catch(error => {
@@ -610,11 +617,13 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            console.log('[DEBUG] setDateRange: Error fetching events, calling loadDashboard');
             loadDashboard();
           });
         return;
       }
       if (preset === 'prevweek') {
+        console.log('[DEBUG] setDateRange: loading Previous Period');
         // Previous Period: Based on Ruthless Slaughter events
         displayElement.textContent = 'Loading Previous Period...';
         fetch(window.GAS_WEB_APP_URL, {
@@ -633,6 +642,7 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              console.log('[DEBUG] setDateRange: fallback to previous Sunday-Saturday, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -652,6 +662,7 @@
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Previous Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              console.log('[DEBUG] setDateRange: No period events, calling loadDashboard');
               loadDashboard();
               return;
             }
@@ -712,6 +723,7 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Previous Period (${previousPeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            console.log('[DEBUG] setDateRange: Using previous period, calling loadDashboard');
             loadDashboard();
           })
           .catch(error => {
@@ -724,11 +736,13 @@
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Previous Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            console.log('[DEBUG] setDateRange: Error fetching events, calling loadDashboard');
             loadDashboard();
           });
         return;
       }
       if (preset === 'currentmonth') {
+        console.log('[DEBUG] setDateRange: current month, calling loadDashboard');
         const start = new Date(today.getFullYear(), today.getMonth(), 1);
         // Get the last day of current month
         const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
@@ -739,6 +753,7 @@
         return;
       }
       if (preset === 'lastmonth') {
+        console.log('[DEBUG] setDateRange: last month, calling loadDashboard');
         const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
         const end = new Date(today.getFullYear(), today.getMonth(), 0);
         startInput.value = formatDate(start);
@@ -750,6 +765,7 @@
     }
     
     function loadDashboard() {
+      console.log('[DEBUG] loadDashboard called');
       // Always use the new splits sheet names for splits display
       const splitsSheetName = window.currentSplitsSheet || 'Splits_ActiveWeek';
       const startDate = document.getElementById('startDate').value;
@@ -759,6 +775,7 @@
 
       // 1. Get splits
       console.log('[DEBUG] Fetching splits with sheetName:', splitsSheetName);
+      console.log('[DEBUG] Sending fetch for splits...');
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -773,30 +790,44 @@
           displaySplits(data);
         })
         .catch(e => {
-          console.error('Splits error:', e);
+          console.error('[DEBUG] Splits fetch error:', e);
           document.getElementById('splitsList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading chest splits</div>';
         });
 
       // 2. Get summary
+      console.log('[DEBUG] Sending fetch for summary...');
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getStatsSummary', startDate, endDate })
       })
-        .then(res => res.json())
-        .then(displaySummary)
-        .catch(e => console.error('Summary error:', e));
+        .then(res => {
+          console.log('[DEBUG] Summary fetch response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('[DEBUG] Summary fetch data:', data);
+          displaySummary(data);
+        })
+        .catch(e => console.error('[DEBUG] Summary fetch error:', e));
 
       // 3. Get player stats
+      console.log('[DEBUG] Sending fetch for player stats...');
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'getPlayerStats', startDate, endDate })
       })
-        .then(res => res.json())
-        .then(displayPlayerStats)
+        .then(res => {
+          console.log('[DEBUG] Player stats fetch response status:', res.status);
+          return res.json();
+        })
+        .then(data => {
+          console.log('[DEBUG] Player stats fetch data:', data);
+          displayPlayerStats(data);
+        })
         .catch(e => {
-          console.error('Stats error:', e);
+          console.error('[DEBUG] Player stats fetch error:', e);
           document.getElementById('playerList').innerHTML = '<div class="loading" style="color:#d93025;">Error loading player stats</div>';
         });
     }
