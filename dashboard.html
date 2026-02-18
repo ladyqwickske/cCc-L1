@@ -402,7 +402,7 @@
         <button class="preset-btn" data-preset="lastmonth" onclick="setDateRange('lastmonth')">Last Month</button>
       </div>
       <div class="date-range-display" id="dateRangeDisplay">Viewing: All Time</div>
-      <div class="date-range-display" id="lastImportedDisplay" style="font-size: 12px; color: #5f6368; margin-top: 8px;">Last Imported: Loading...</div>
+      <div class="date-range-display" id="lastImportedDisplay" style="font-size: 12px; color: #5f6368; margin-top: 8px;">Last Imported: Loading... | Required Points: 3000</div>
       <input type="date" id="startDate" style="display:none;">
       <input type="date" id="endDate" style="display:none;">
     </div>
@@ -599,7 +599,7 @@
       playerArray.forEach((player,idx)=>{
         const commonCryptInfo = player.chestsByTypeGrouped?.['Common Crypt'];
         const totalPointsVal = player.totalPoints || 0;
-        const pointsClass = totalPointsVal >= 10000 ? 'player-green' : (totalPointsVal >= 5000 ? 'player-orange' : 'player-red');
+        const pointsClass = totalPointsVal >= 3000 ? 'player-green' : (totalPointsVal >= 2700 ? 'player-orange' : 'player-red');
         rowsHtml += '<div class="player-row">';
         rowsHtml += `<div class="cell rank-col">${idx+1}</div><div class="cell ${pointsClass}">${player.player}</div><div class="cell">${totalPointsVal || '-'}</div>`;
         // Calculate total chests: use totalChests if available, otherwise sum from chestsByTypeGrouped (don't double-count eventChests!)
@@ -638,21 +638,24 @@
       })
         .then(res => res.json())
         .then(data => {
+          console.log('[DEBUG] Import timestamp response:', data);
           const display = document.getElementById('lastImportedDisplay');
           if (display) {
-            if (data && data.data && data.data.timestamp) {
-              display.textContent = `Last Imported: ${data.data.timestamp}`;
+            let timestampText = 'No imports yet';
+            if (data && data.success && data.data && data.data.timestamp) {
+              timestampText = data.data.timestamp;
             } else if (data && data.timestamp) {
-              display.textContent = `Last Imported: ${data.timestamp}`;
-            } else {
-              display.textContent = 'Last Imported: No imports yet';
+              timestampText = data.timestamp;
+            } else if (data && data.data && typeof data.data === 'string') {
+              timestampText = data.data;
             }
+            display.textContent = `Last Imported: ${timestampText} | Required Points: 3000`;
           }
         })
         .catch(e => {
           console.error('Error loading import timestamp:', e);
           const display = document.getElementById('lastImportedDisplay');
-          if (display) display.textContent = 'Last Imported: Unable to load';
+          if (display) display.textContent = 'Last Imported: Unable to load | Required Points: 3000';
         });
     }
   </script>
