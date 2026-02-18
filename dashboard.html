@@ -468,6 +468,8 @@
     };
     
     function setDateRange(preset) {
+      // Always use the new splits sheet names for splits display
+      window.currentSplitsSheet = (preset === 'lastday') ? 'Splits_Active Period' : (preset === 'prevweek') ? 'Splits_Previous Period' : null;
       const today = new Date();
       const startInput = document.getElementById('startDate');
       const endInput = document.getElementById('endDate');
@@ -731,11 +733,37 @@
     }
     
     function loadDashboard() {
+      // Always use the new splits sheet names for splits display
+      const splitsSheetName = window.currentSplitsSheet || 'Splits_Active Period';
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
       document.getElementById('playerList').innerHTML = '<div class="loading">Loading...</div>';
       // Use CORS proxy (Cloudflare Worker) for API calls
-      // 1. Get summary
+      // 1. Get splits (if needed in future, e.g. for a splits tab or section)
+      // Example: fetch splits data if you want to display it
+      // fetch(window.GAS_WEB_APP_URL, {
+      //   method: 'POST',
+      //   headers: { 'Content-Type': 'application/json' },
+      //   body: JSON.stringify({ action: 'getSplits', sheetName: splitsSheetName })
+      // })
+      //   .then(res => res.json())
+      //   .then(displaySplits)
+      //   .catch(e => console.error('Splits error:', e));
+          // If you have a clear cache or reload function, ensure it references the new splits sheet names
+          function clearCacheAndReload() {
+            // Always clear both splits sheets
+            const splitsSheetNames = ['Splits_Active Period', 'Splits_Previous Period'];
+            splitsSheetNames.forEach(sheetName => {
+              // Example: send a request to backend to clear/rebuild this sheet
+              fetch(window.GAS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'clearSplitsSheet', sheetName })
+              });
+            });
+            // Reload dashboard after clearing
+            setTimeout(loadDashboard, 1000);
+          }
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
