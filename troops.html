@@ -177,8 +177,8 @@
     .status.err { background: #b71c1c; color: #ef5350; border: 1px solid #d32f2f; }
 
     /* Table */
-    .table-container { margin-top: 12px; margin-bottom: 12px; overflow-x: auto; }
-    table { width: 100%; border-collapse: collapse; background: #232526; border-radius: 8px; overflow: hidden; border: 1px solid #444; table-layout: fixed; }
+    .table-container { margin-top: 12px; margin-bottom: 12px; overflow: auto; max-height: 70vh; position: relative; border-radius: 8px; border: 1px solid #444; }
+    table { width: 100%; border-collapse: collapse; background: #232526; table-layout: fixed; }
     thead { background: #1a1b1c; }
     th { 
       padding: 12px 8px; 
@@ -189,6 +189,16 @@
       letter-spacing: 0.5px;
       border-bottom: 2px solid #444;
       text-align: left;
+      position: sticky;
+      top: 0;
+      background: #1a1b1c;
+      z-index: 10;
+    }
+    th:first-child {
+      position: sticky;
+      left: 0;
+      z-index: 11;
+      background: #1a1b1c;
     }
     th.sortable { cursor: pointer; user-select: none; }
     th.sortable:hover { color: #ffc933; }
@@ -201,8 +211,16 @@
       color: #e0e0e0;
       font-size: 13px;
     }
+    td:first-child {
+      position: sticky;
+      left: 0;
+      background: #232526;
+      z-index: 9;
+      font-weight: 500;
+    }
     td.center { text-align: center; }
     tr:hover { background: #2a2b2c; }
+    tr:hover td:first-child { background: #2a2b2c; }
     #troopMembersTable th[data-column="playerName"],
     #troopMembersTable td:first-child {
       width: 200px;
