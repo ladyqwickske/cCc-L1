@@ -156,6 +156,14 @@
       font-weight: 500;
       border: 1px solid #444;
     }
+    .no-date {
+      color: #ffb300;
+      background: rgba(255, 179, 0, 0.15);
+      border: 1px solid rgba(255, 179, 0, 0.35);
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-weight: 700;
+    }
     
     /* READ-ONLY MODE STYLES */
     .read-only-mode input,
@@ -402,7 +410,7 @@
         <button class="preset-btn" data-preset="lastmonth" onclick="setDateRange('lastmonth')">Last Month</button>
       </div>
       <div class="date-range-display" id="dateRangeDisplay">Viewing: All Time</div>
-      <div class="date-range-display" id="lastImportedDisplay" style="font-size: 12px; color: #5f6368; margin-top: 8px;">Last Imported: Loading... | Required Points: 3000</div>
+      <div class="date-range-display" id="lastImportedDisplay" style="font-size: 12px; color: #ffb300; margin-top: 8px;">Last Imported: <span class="no-date">Loading...</span> | Required Points: 3000</div>
       <input type="date" id="startDate" style="display:none;">
       <input type="date" id="endDate" style="display:none;">
     </div>
@@ -845,13 +853,17 @@
             } else if (data && data.data && typeof data.data === 'string') {
               timestampText = data.data;
             }
-            display.textContent = `Last Imported: ${timestampText} | Required Points: 3000`;
+            if (timestampText === 'No imports yet') {
+              display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
+            } else {
+              display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
+            }
           }
         })
         .catch(e => {
           console.error('Error loading import timestamp:', e);
           const display = document.getElementById('lastImportedDisplay');
-          if (display) display.textContent = 'Last Imported: Unable to load | Required Points: 3000';
+          if (display) display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
         });
     }
   </script>
