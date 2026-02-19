@@ -25,9 +25,47 @@
       background: rgba(30, 34, 40, 0.95);
       border-bottom: 1px solid #444;
       box-shadow: 0 2px 8px rgba(0,0,0,0.25);
-      position: sticky; top: 0; z-index: 1000;
+      position: sticky;
+      top: 0;
+      z-index: 9999;
+      width: 100vw;
+      left: 0;
+      right: 0;
+      overflow: visible;
     }
-    .tab-nav-container { max-width: 1400px; margin: 0 auto; display: flex; align-items: center; padding: 0 16px; }
+    .tab-nav-container {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      padding: 0 16px;
+      overflow: visible;
+    }
+        @media (max-width: 600px) {
+          .tab-nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            width: 100vw;
+            z-index: 9999;
+          }
+          .tab-nav-container {
+            flex-direction: column;
+            align-items: flex-start;
+            padding: 0 8px;
+          }
+          .tab-buttons {
+            flex-wrap: wrap;
+            gap: 2px;
+            height: auto;
+            max-width: 100vw;
+            overflow-x: auto;
+          }
+          body {
+            padding-top: 70px;
+          }
+        }
     .nav-brand { font-size: 20px; font-weight: 700; color: #ffb300; padding: 16px 0; margin-right: 32px; white-space: nowrap; display: flex; align-items: center; gap: 8px; text-shadow: 0 2px 8px #000a; }
     .nav-brand img { height: 32px; width: auto; }
     .tab-buttons {
@@ -384,7 +422,12 @@
   <nav class="tab-nav">
     <div class="tab-nav-container">
       <div class="nav-brand" id="navBrand"><img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions</div>
-      <div class="tab-buttons">
+      <button class="hamburger" id="navHamburger" aria-label="Toggle navigation">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
+      <div class="tab-buttons" id="navTabs">
         <a href="dashboard.html" class="tab-btn active" title="Dashboard"><img src="chests.png" alt="Dashboard" class="tab-icon"></a>
         <a href="events.html" class="tab-btn" title="Events"><img src="events.png" alt="Events" class="tab-icon"></a>
         <a href="members.html" class="tab-btn" title="Members"><img src="members.png" alt="Members" class="tab-icon"></a>
@@ -397,6 +440,22 @@
       <div id="signedInUserBadge" style="display: none; margin-left: auto; padding: 8px 12px; background: #1a1b1c; border-radius: 4px; font-size: 12px; color: #ffb300; border: 1px solid #444;"></div>
       <button id="logoutBtn" onclick="handleLogout()" style="display: none; margin-left: 8px; padding: 8px 10px; background: #c62828; color: #fff; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">Log out</button>
     </div>
+      // Hamburger menu toggle for mobile navigation
+      document.addEventListener('DOMContentLoaded', function() {
+        const hamburger = document.getElementById('navHamburger');
+        const navTabs = document.getElementById('navTabs');
+        if (hamburger && navTabs) {
+          hamburger.addEventListener('click', function() {
+            navTabs.classList.toggle('open');
+          });
+        }
+        // Optional: close menu when clicking outside
+        document.addEventListener('click', function(e) {
+          if (navTabs.classList.contains('open') && !navTabs.contains(e.target) && !hamburger.contains(e.target)) {
+            navTabs.classList.remove('open');
+          }
+        });
+      });
   </nav>
 
   <div id="dashboard" class="tab-content active">
