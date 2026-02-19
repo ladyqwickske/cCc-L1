@@ -464,7 +464,6 @@
     // Dashboard
     window.onload = function() { 
       setDateRange('lastday');
-      loadLastImportTimestamp();
     };
     
     function setDateRange(preset) {
@@ -789,6 +788,16 @@
       document.getElementById('totalMembers').textContent = data.totalMembers || '0';
       document.getElementById('totalPlayers').textContent = data.totalPlayers || '0';
       document.getElementById('totalPoints').textContent = data.totalPoints ? data.totalPoints.toLocaleString() : '0';
+      // Show last import timestamp from summary if available
+      const display = document.getElementById('lastImportedDisplay');
+      if (display && data.lastImportTimestamp) {
+        let timestampText = data.lastImportTimestamp;
+        if (timestampText === 'Never' || timestampText === 'No imports yet') {
+          display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
+        } else {
+          display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
+        }
+      }
     }
     
     function displayPlayerStats(stats) {
@@ -882,38 +891,6 @@
       document.querySelectorAll(`[data-type="${typeName}"]`).forEach(el=>{ if (el.classList.contains('level-header')||el.classList.contains('level-cell')) el.classList.toggle('visible'); });
     }
 
-    function loadLastImportTimestamp() {
-      fetch(window.GAS_WEB_APP_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getLastImportTimestamp' })
-      })
-        .then(res => res.json())
-        .then(data => {
-          console.log('[DEBUG] Import timestamp response:', data);
-          const display = document.getElementById('lastImportedDisplay');
-          if (display) {
-            let timestampText = 'No imports yet';
-            if (data && data.success && data.data && data.data.timestamp) {
-              timestampText = data.data.timestamp;
-            } else if (data && data.timestamp) {
-              timestampText = data.timestamp;
-            } else if (data && data.data && typeof data.data === 'string') {
-              timestampText = data.data;
-            }
-            if (timestampText === 'No imports yet') {
-              display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
-            } else {
-              display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
-            }
-          }
-        })
-        .catch(e => {
-          console.error('Error loading import timestamp:', e);
-          const display = document.getElementById('lastImportedDisplay');
-          if (display) display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
-        });
-    }
   </script>
 </body>
 </html>
