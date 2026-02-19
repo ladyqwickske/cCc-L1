@@ -440,22 +440,7 @@
       <div id="signedInUserBadge" style="display: none; margin-left: auto; padding: 8px 12px; background: #1a1b1c; border-radius: 4px; font-size: 12px; color: #ffb300; border: 1px solid #444;"></div>
       <button id="logoutBtn" onclick="handleLogout()" style="display: none; margin-left: 8px; padding: 8px 10px; background: #c62828; color: #fff; border: none; border-radius: 4px; font-size: 12px; cursor: pointer;">Log out</button>
     </div>
-      // Hamburger menu toggle for mobile navigation
-      document.addEventListener('DOMContentLoaded', function() {
-        const hamburger = document.getElementById('navHamburger');
-        const navTabs = document.getElementById('navTabs');
-        if (hamburger && navTabs) {
-          hamburger.addEventListener('click', function() {
-            navTabs.classList.toggle('open');
-          });
-        }
-        // Optional: close menu when clicking outside
-        document.addEventListener('click', function(e) {
-          if (navTabs.classList.contains('open') && !navTabs.contains(e.target) && !hamburger.contains(e.target)) {
-            navTabs.classList.remove('open');
-          }
-        });
-      });
+
   </nav>
 
   <div id="dashboard" class="tab-content active">
@@ -1101,4 +1086,24 @@ function filterPlayerTable() {
 
   </script>
 </body>
+</div>
+<script>
+// Hamburger menu toggle for mobile navigation
+document.addEventListener('DOMContentLoaded', function() {
+  const hamburger = document.getElementById('navHamburger');
+  const navTabs = document.getElementById('navTabs');
+  if (hamburger && navTabs) {
+    hamburger.addEventListener('click', function(e) {
+      e.stopPropagation();
+      navTabs.classList.toggle('open');
+    });
+  }
+  // Optional: close menu when clicking outside
+  document.addEventListener('click', function(e) {
+    if (navTabs.classList.contains('open') && !navTabs.contains(e.target) && !hamburger.contains(e.target)) {
+      navTabs.classList.remove('open');
+    }
+  });
+});
+</script>
 </html>
