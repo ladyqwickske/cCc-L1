@@ -711,8 +711,9 @@
 
     <div class="tabs-container">
       <div class="tabs">
-        <button class="tab active" onclick="TroopsTab.switchSubTab('entry')">👤 Add Entry</button>
-        <button class="tab" onclick="TroopsTab.switchSubTab('player')">📋 View Player History</button>
+        <button class="tab active" data-tab="entry" onclick="TroopsTab.switchSubTab('entry', event)">👤 Add Entry</button>
+        <button class="tab" data-tab="initial" onclick="TroopsTab.switchSubTab('initial', event)">🚀 Initial Troop Entry</button>
+        <button class="tab" data-tab="player" onclick="TroopsTab.switchSubTab('player', event)">📋 View Player History</button>
       </div>
 
       <!-- ADD ENTRY SUB-TAB -->
@@ -755,6 +756,14 @@
 
         <div id="troopEntryMessage" class="status" style="margin-top: 12px;"></div>
 
+        <div id="troopPlayerHistoryContainer" style="margin-top: 20px; display: none;">
+          <h2>Recent History for Selected Player</h2>
+          <div id="troopPlayerHistoryTable"></div>
+        </div>
+      </div>
+
+      <!-- INITIAL TROOP ENTRY SUB-TAB -->
+      <div id="troopInitial" class="tab-content">
         <div class="initial-entry-panel">
           <h3>🚀 Initial Troops Quick Entry</h3>
           <div class="controls" style="margin-top: 12px;">
@@ -812,11 +821,6 @@
           </div>
           <div class="helper-text">Blank fields are skipped unless auto-fill zeros is enabled.</div>
           <div id="initialTroopEntryMessage" class="status" style="margin-top: 12px;"></div>
-        </div>
-
-        <div id="troopPlayerHistoryContainer" style="margin-top: 20px; display: none;">
-          <h2>Recent History for Selected Player</h2>
-          <div id="troopPlayerHistoryTable"></div>
         </div>
       </div>
 
@@ -894,13 +898,12 @@
         });
         const contentId = 'troop' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
         document.getElementById(contentId)?.classList.add('active');
-        if (evt && evt.target) {
-          evt.target.classList.add('active');
-        } else {
-          const buttons = document.querySelectorAll('#troops .tab');
-          if (tabName === 'entry' && buttons[0]) buttons[0].classList.add('active');
-          if (tabName === 'player' && buttons[1]) buttons[1].classList.add('active');
+        if (evt && evt.currentTarget) {
+          evt.currentTarget.classList.add('active');
+          return;
         }
+        const tabButton = document.querySelector(`#troops .tab[data-tab="${tabName}"]`);
+        if (tabButton) tabButton.classList.add('active');
       }
 
       function setupSummarySorting() {
