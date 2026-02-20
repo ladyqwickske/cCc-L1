@@ -1264,38 +1264,48 @@
           return;
         }
 
-        const requests = validEntries.map(entry => {
-          const payload = {
-            action: 'addTroopEntry',
-            playerName,
-            troopType: entry.type,
-            troopLevel: entry.level,
-            notes
-          };
-          console.log(`[DEBUG] Sending payload for type ${entry.type}:`, payload);
-          return fetch(window.GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          }).then(res => res.json())
-        });
-
-        Promise.all(requests)
-          .then(results => {
-            const failures = results.filter(result => !result || !result.success);
-            if (failures.length > 0) {
-              const message = failures[0]?.message || 'Some entries failed to save.';
-              showInitialStatus(message, 'err');
-              return;
+        // Send requests sequentially to avoid GAS web app concurrency issues
+        showInitialStatus('Saving entries...', 'ok');
+        
+        (async () => {
+          try {
+            let successCount = 0;
+            for (const entry of validEntries) {
+              const payload = {
+                action: 'addTroopEntry',
+                playerName,
+                troopType: entry.type,
+                troopLevel: entry.level,
+                notes
+              };
+              console.log(`[DEBUG] Sending payload for type ${entry.type}:`, payload);
+              
+              const response = await fetch(window.GAS_WEB_APP_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              });
+              const result = await response.json();
+              
+              if (result && result.success) {
+                successCount++;
+                console.log(`[DEBUG] Successfully saved ${entry.type}`);
+              } else {
+                console.error(`[ERROR] Failed to save ${entry.type}:`, result);
+                showInitialStatus(`Error saving ${entry.type}: ${result?.message || 'Unknown error'}`, 'err');
+                return;
+              }
             }
-            showInitialStatus(`Saved ${validEntries.length} entries for ${playerName}.`, 'ok');
+            
+            showInitialStatus(`Saved ${successCount} entries for ${playerName}.`, 'ok');
             resetInitialTroopForm();
             updatePlayerHistory();
             loadTroopSummary();
-          })
-          .catch(error => {
+          } catch (error) {
+            console.error('[ERROR] Exception during save:', error);
             showInitialStatus('Error: ' + error.toString(), 'err');
-          });
+          }
+        })();
       }
 
       function updatePlayerHistory() {
