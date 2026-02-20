@@ -892,10 +892,10 @@
       }
 
       function switchSubTab(tabName, evt) {
-        document.querySelectorAll('#troops .tabs').forEach(tabs => {
-          tabs.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-          tabs.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
-        });
+        const container = document.querySelector('#troops .tabs-container');
+        if (!container) return;
+        container.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+        container.querySelectorAll('.tab').forEach(btn => btn.classList.remove('active'));
         const contentId = 'troop' + tabName.charAt(0).toUpperCase() + tabName.slice(1);
         document.getElementById(contentId)?.classList.add('active');
         if (evt && evt.currentTarget) {
