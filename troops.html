@@ -1236,6 +1236,7 @@
         const entries = ['G', 'M', 'S', 'E', 'C'].map(type => {
           const input = document.getElementById(`initialTroop${type}`);
           const rawValue = input ? input.value.trim() : '';
+          console.log(`[DEBUG] Type ${type}: input element=`, input, `rawValue="${rawValue}"`);
           if (rawValue === '') {
             return autoFillZeros ? { type, level: 0 } : null;
           }
@@ -1243,8 +1244,11 @@
           if (isNaN(level) || level < 0) {
             return { type, level: null, invalid: true };
           }
+          console.log(`[DEBUG] Type ${type}: returning valid entry with level=${level}`);
           return { type, level };
         });
+
+        console.log('[DEBUG] All entries after mapping:', entries);
 
         const invalid = entries.filter(entry => entry && entry.invalid);
         if (invalid.length > 0) {
@@ -1253,24 +1257,28 @@
         }
 
         const validEntries = entries.filter(entry => entry && entry.level !== null);
+        console.log('[DEBUG] Valid entries after filtering:', validEntries);
+        
         if (validEntries.length === 0) {
           showInitialStatus('Enter at least one troop level.', 'err');
           return;
         }
 
-        const requests = validEntries.map(entry =>
-          fetch(window.GAS_WEB_APP_URL, {
+        const requests = validEntries.map(entry => {
+          const payload = {
+            action: 'addTroopEntry',
+            playerName,
+            troopType: entry.type,
+            troopLevel: entry.level,
+            notes
+          };
+          console.log(`[DEBUG] Sending payload for type ${entry.type}:`, payload);
+          return fetch(window.GAS_WEB_APP_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'addTroopEntry',
-              playerName,
-              troopType: entry.type,
-              troopLevel: entry.level,
-              notes
-            })
+            body: JSON.stringify(payload)
           }).then(res => res.json())
-        );
+        });
 
         Promise.all(requests)
           .then(results => {
