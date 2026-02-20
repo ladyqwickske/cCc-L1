@@ -855,7 +855,8 @@
       }
 
       function loadParticipationAndRender(events, members) {
-        currentEvents = events || [];
+        // Filter out period-marker events (they're for period calculation only, not for participation tracking)
+        currentEvents = (events || []).filter(event => event.participationMethod !== 'period-marker');
         currentEvents.sort((a, b) => {
           const dateA = new Date(a.startDate);
           const dateB = new Date(b.startDate);
