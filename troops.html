@@ -135,6 +135,38 @@
     }
     .control-group { display: flex; gap: 8px; align-items: flex-end; flex-wrap: wrap; }
 
+    .initial-entry-panel {
+      background: #1a1b1c;
+      border: 1px solid #444;
+      border-radius: 8px;
+      padding: 16px;
+      margin-top: 20px;
+      text-align: left;
+    }
+    .initial-entry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin-top: 12px;
+    }
+    .initial-entry-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-top: 12px;
+    }
+    .checkbox-inline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .helper-text {
+      font-size: 12px;
+      color: #b0b0b0;
+      margin-top: 6px;
+    }
+
     /* Forms */
     .form-group { margin-bottom: 16px; }
     label { display: block; font-size: 12px; font-weight: 600; color: #ffb300; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -378,7 +410,7 @@
         top: 0;
         left: 0;
         right: 0;
-        width: 100vw;
+        width: 100%;
         z-index: 9999;
       }
       .tab-nav-container {
@@ -409,7 +441,7 @@
         top: 60px;
         left: 0;
         right: 0;
-        width: 100vw;
+        width: 100%;
         z-index: 10000;
         border-bottom-left-radius: 12px;
         border-bottom-right-radius: 12px;
@@ -723,6 +755,65 @@
 
         <div id="troopEntryMessage" class="status" style="margin-top: 12px;"></div>
 
+        <div class="initial-entry-panel">
+          <h3>🚀 Initial Troops Quick Entry</h3>
+          <div class="controls" style="margin-top: 12px;">
+            <div class="field">
+              <label for="initialTroopPlayerName">Player Name *</label>
+              <select id="initialTroopPlayerName" required>
+                <option value="">-- Select Player --</option>
+              </select>
+            </div>
+            <div class="field wide">
+              <label for="initialTroopNotes">Notes</label>
+              <input type="text" id="initialTroopNotes" placeholder="Optional notes" />
+            </div>
+            <div class="field checkbox-field checkbox-inline">
+              <input type="checkbox" id="initialTroopIsStarting" checked />
+              <label for="initialTroopIsStarting" style="margin: 0; font-weight: normal; text-transform: none; color: #e0e0e0;">Mark as Starting</label>
+            </div>
+            <div class="field checkbox-field checkbox-inline">
+              <input type="checkbox" id="initialTroopFillZeros" checked />
+              <label for="initialTroopFillZeros" style="margin: 0; font-weight: normal; text-transform: none; color: #e0e0e0;">Auto-fill zeros</label>
+            </div>
+          </div>
+
+          <div class="initial-entry-grid">
+            <div class="field">
+              <label for="initialTroopG">Guardsmen (G)</label>
+              <input type="number" id="initialTroopG" min="0" placeholder="0" />
+            </div>
+            <div class="field">
+              <label for="initialTroopM">Monsters (M)</label>
+              <input type="number" id="initialTroopM" min="0" placeholder="0" />
+            </div>
+            <div class="field">
+              <label for="initialTroopS">Specialists (S)</label>
+              <input type="number" id="initialTroopS" min="0" placeholder="0" />
+            </div>
+            <div class="field">
+              <label for="initialTroopE">Engineering (E)</label>
+              <input type="number" id="initialTroopE" min="0" placeholder="0" />
+            </div>
+            <div class="field">
+              <label for="initialTroopC">Crypt (C)</label>
+              <input type="number" id="initialTroopC" min="0" placeholder="0" />
+            </div>
+          </div>
+
+          <div class="initial-entry-actions">
+            <div class="field" style="min-width: 160px;">
+              <label for="initialApplyLevel">Apply level to all</label>
+              <input type="number" id="initialApplyLevel" min="0" placeholder="45" />
+            </div>
+            <button type="button" class="btn btn-secondary" onclick="TroopsTab.applyInitialLevelToAll()">Apply</button>
+            <button type="button" class="btn" onclick="TroopsTab.submitInitialTroopEntry()">✅ Save Initial Troops</button>
+            <button type="button" class="btn btn-secondary" onclick="TroopsTab.resetInitialTroopForm()">🗑️ Clear</button>
+          </div>
+          <div class="helper-text">Blank fields are skipped unless auto-fill zeros is enabled.</div>
+          <div id="initialTroopEntryMessage" class="status" style="margin-top: 12px;"></div>
+        </div>
+
         <div id="troopPlayerHistoryContainer" style="margin-top: 20px; display: none;">
           <h2>Recent History for Selected Player</h2>
           <div id="troopPlayerHistoryTable"></div>
@@ -950,7 +1041,11 @@
 
       function loadPlayerList() {
         const select = document.getElementById('troopPlayerName');
+        const initialSelect = document.getElementById('initialTroopPlayerName');
         select.innerHTML = '<option value="">-- Select Player --</option>';
+        if (initialSelect) {
+          initialSelect.innerHTML = '<option value="">-- Select Player --</option>';
+        }
         try {
           fetch(window.GAS_WEB_APP_URL, {
             method: 'POST',
@@ -961,6 +1056,9 @@
             .then(members => {
               if (!Array.isArray(members)) {
                 select.innerHTML = '<option value="">-- Error: Invalid response --</option>';
+                if (initialSelect) {
+                  initialSelect.innerHTML = '<option value="">-- Error: Invalid response --</option>';
+                }
                 return;
               }
               members.forEach(member => {
@@ -969,13 +1067,25 @@
                 option.value = name;
                 option.textContent = name;
                 select.appendChild(option);
+                if (initialSelect) {
+                  const initialOption = document.createElement('option');
+                  initialOption.value = name;
+                  initialOption.textContent = name;
+                  initialSelect.appendChild(initialOption);
+                }
               });
             })
             .catch(error => {
               select.innerHTML = '<option value="">-- Error loading members --</option>';
+              if (initialSelect) {
+                initialSelect.innerHTML = '<option value="">-- Error loading members --</option>';
+              }
             });
         } catch (error) {
           select.innerHTML = '<option value="">-- Error loading members --</option>';
+          if (initialSelect) {
+            initialSelect.innerHTML = '<option value="">-- Error loading members --</option>';
+          }
         }
       }
 
@@ -1019,11 +1129,31 @@
         }
       }
 
+      function showInitialStatus(message, type) {
+        const el = document.getElementById('initialTroopEntryMessage');
+        if (!el) return;
+        el.textContent = message;
+        el.className = 'status ' + type;
+        if (type === 'ok') {
+          setTimeout(() => { el.className = 'status'; }, 4000);
+        }
+      }
+
+      function buildTroopNotes(rawNotes, isStarting) {
+        const trimmed = (rawNotes || '').trim();
+        if (!isStarting) return trimmed;
+        if (!trimmed) return '[START]';
+        if (trimmed.toUpperCase().startsWith('[START]')) return trimmed;
+        return `[START] ${trimmed}`;
+      }
+
       function submitTroopEntry() {
         const playerName = document.getElementById('troopPlayerName').value;
         const troopType = document.getElementById('troopType').value;
         const troopLevel = document.getElementById('troopLevel').value;
-        const notes = document.getElementById('troopResearch').value;
+        const notesInput = document.getElementById('troopResearch').value;
+        const isStarting = document.getElementById('troopIsStarting').checked;
+        const notes = buildTroopNotes(notesInput, isStarting);
 
         if (!playerName || !troopType || !troopLevel) {
           showStatus('Please fill in all required fields.', 'err');
@@ -1061,8 +1191,100 @@
         document.getElementById('troopType').value = '';
         document.getElementById('troopLevel').value = '';
         document.getElementById('troopResearch').value = '';
+        document.getElementById('troopIsStarting').checked = false;
         document.getElementById('troopPlayerHistoryContainer').style.display = 'none';
         document.getElementById('troopEntryMessage').className = 'status';
+      }
+
+      function applyInitialLevelToAll() {
+        const value = document.getElementById('initialApplyLevel').value;
+        if (value === '') return;
+        ['G', 'M', 'S', 'E', 'C'].forEach(type => {
+          const input = document.getElementById(`initialTroop${type}`);
+          if (input) input.value = value;
+        });
+      }
+
+      function resetInitialTroopForm() {
+        document.getElementById('initialTroopPlayerName').value = '';
+        document.getElementById('initialTroopNotes').value = '';
+        document.getElementById('initialTroopIsStarting').checked = true;
+        document.getElementById('initialTroopFillZeros').checked = true;
+        document.getElementById('initialApplyLevel').value = '';
+        ['G', 'M', 'S', 'E', 'C'].forEach(type => {
+          const input = document.getElementById(`initialTroop${type}`);
+          if (input) input.value = '';
+        });
+        showInitialStatus('', '');
+      }
+
+      function submitInitialTroopEntry() {
+        const playerName = document.getElementById('initialTroopPlayerName').value;
+        if (!playerName) {
+          showInitialStatus('Please select a player.', 'err');
+          return;
+        }
+
+        const notesInput = document.getElementById('initialTroopNotes').value;
+        const isStarting = document.getElementById('initialTroopIsStarting').checked;
+        const autoFillZeros = document.getElementById('initialTroopFillZeros').checked;
+        const notes = buildTroopNotes(notesInput, isStarting);
+
+        const entries = ['G', 'M', 'S', 'E', 'C'].map(type => {
+          const input = document.getElementById(`initialTroop${type}`);
+          const rawValue = input ? input.value.trim() : '';
+          if (rawValue === '') {
+            return autoFillZeros ? { type, level: 0 } : null;
+          }
+          const level = parseInt(rawValue, 10);
+          if (isNaN(level) || level < 0) {
+            return { type, level: null, invalid: true };
+          }
+          return { type, level };
+        });
+
+        const invalid = entries.filter(entry => entry && entry.invalid);
+        if (invalid.length > 0) {
+          showInitialStatus('Please enter valid levels (0 or higher).', 'err');
+          return;
+        }
+
+        const validEntries = entries.filter(entry => entry && entry.level !== null);
+        if (validEntries.length === 0) {
+          showInitialStatus('Enter at least one troop level.', 'err');
+          return;
+        }
+
+        const requests = validEntries.map(entry =>
+          fetch(window.GAS_WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'addTroopEntry',
+              playerName,
+              troopType: entry.type,
+              troopLevel: entry.level,
+              notes
+            })
+          }).then(res => res.json())
+        );
+
+        Promise.all(requests)
+          .then(results => {
+            const failures = results.filter(result => !result || !result.success);
+            if (failures.length > 0) {
+              const message = failures[0]?.message || 'Some entries failed to save.';
+              showInitialStatus(message, 'err');
+              return;
+            }
+            showInitialStatus(`Saved ${validEntries.length} entries for ${playerName}.`, 'ok');
+            resetInitialTroopForm();
+            updatePlayerHistory();
+            loadTroopSummary();
+          })
+          .catch(error => {
+            showInitialStatus('Error: ' + error.toString(), 'err');
+          });
       }
 
       function updatePlayerHistory() {
@@ -1227,7 +1449,18 @@
           });
       }
 
-      return { init, switchSubTab, submitTroopEntry, resetTroopForm, updatePlayerHistory, loadPlayerHistory, loadTroopSummary };
+      return {
+        init,
+        switchSubTab,
+        submitTroopEntry,
+        resetTroopForm,
+        updatePlayerHistory,
+        loadPlayerHistory,
+        loadTroopSummary,
+        applyInitialLevelToAll,
+        submitInitialTroopEntry,
+        resetInitialTroopForm
+      };
     })();
   </script>
 
