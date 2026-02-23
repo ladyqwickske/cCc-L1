@@ -598,6 +598,7 @@
         <button class="tab active" onclick="EventsTab.switchTab('manageTab', event)">📋 Manage Events</button>
         <button class="tab" onclick="EventsTab.switchTab('chestEventsTab', event)">📊 Chest Events</button>
         <button class="tab" onclick="EventsTab.switchTab('manualEventsTab', event)">✏️ Manual Events</button>
+        <button class="tab" onclick="EventsTab.switchTab('troopEventsTab', event)">🎖️ Troop Events</button>
         <button class="tab" onclick="EventsTab.switchTab('createTab', event)">➕ Create Event</button>
         <button class="tab" onclick="EventsTab.switchTab('eventTypesTab', event)">⚙️ Event Types</button>
       </div>
@@ -645,6 +646,28 @@
         </div>
         <div style="margin-bottom:12px;"><button class="btn" onclick="EventsTab.submitManualEntry()">💾 Save Entry</button><button class="btn btn-secondary" onclick="EventsTab.calculateManualNonParticipants()">🙅‍♂️ Fill Non-Participants</button><div id="manualEntryStatus" class="status"></div><div id="manualNonPartStatus" class="status"></div></div>
         <div id="manualParticipationData" style="display:none; margin-top:12px;"><h4 id="manualParticipationHeading" style="margin:0 0 12px 0;">Participation Entries</h4><div id="manualLoadingIndicator" class="loading">Loading participation data...</div><div class="table-container"><table><thead id="manualParticipationTableHead"></thead><tbody id="manualParticipationTableBody"></tbody></table></div></div>
+      </div>
+
+      <!-- TROOP EVENTS TAB -->
+      <div id="troopEventsTab" class="tab-content">
+        <h3 style="margin:0 0 12px 0;">Troop Events</h3>
+        <p style="margin-bottom:12px; color:#e0e0e0;">Track troop G-level participation for events with troop-based targets.</p>
+        <div class="form-grid" style="margin-bottom:12px;">
+          <div><label for="troopEventSelect">Event</label><select id="troopEventSelect" onchange="EventsTab.onTroopEventSelected()"><option value="">-- Select Troop Event --</option></select></div>
+        </div>
+        <div id="troopEventActions" style="display:none; margin-bottom:12px;">
+          <p style="color:#e0e0e0; font-size:13px; margin-bottom:12px;">Event configured with G-level targets. Enter points for each member below or troop levels will be automatically calculated from the Troops tracker.</p>
+          <div class="form-grid" style="margin-bottom:12px;">
+            <div><label for="troopMember">Member</label><select id="troopMember"><option value="">-- Select Member --</option></select></div>
+            <div><label for="troopPoints">Points Achieved</label><input type="number" id="troopPoints" placeholder="Enter points" onkeypress="if(event.key==='Enter'){EventsTab.submitTroopEntry();}"></div>
+          </div>
+          <div style="margin-bottom:12px;"><button class="btn" onclick="EventsTab.submitTroopEntry()">💾 Save Points</button><div id="troopEntryStatus" class="status"></div></div>
+        </div>
+        <div id="troopParticipationData" style="display:none; margin-top:12px;">
+          <h4 id="troopParticipationHeading" style="margin:0 0 12px 0;">Troop Participation Results</h4>
+          <div id="troopLoadingIndicator" class="loading">Loading participation data...</div>
+          <div class="table-container"><table><thead id="troopParticipationTableHead"></thead><tbody id="troopParticipationTableBody"></tbody></table></div>
+        </div>
       </div>
 
       <!-- CREATE EVENT TAB -->
@@ -779,6 +802,7 @@
         if (tabId === 'manageTab') loadEvents();
         if (tabId === 'chestEventsTab') populateChestEventSelect();
         if (tabId === 'manualEventsTab') populateManualEventSelect();
+        if (tabId === 'troopEventsTab') populateTroopEventSelect();
         if (tabId === 'eventTypesTab') loadEventTypes();
       }
 
@@ -896,6 +920,14 @@
         const manualEvents = eventsData.filter(e => e.participationMethod === 'manual-entry');
         if (manualEvents.length === 0) { select.innerHTML = '<option value="">-- No manual events --</option>'; return; }
         select.innerHTML = ['<option value="">-- Select Event --</option>'].concat(manualEvents.map(e => `<option value="${escapeHtml(e.eventName)}">${escapeHtml(e.eventName)}</option>`)).join('');
+      }
+
+      function populateTroopEventSelect() {
+        const select = document.getElementById('troopEventSelect');
+        if (!eventsData || eventsData.length === 0) { select.innerHTML = '<option value="">-- No events available --</option>'; return; }
+        const troopEvents = eventsData.filter(e => e.participationMethod === 'troop-based');
+        if (troopEvents.length === 0) { select.innerHTML = '<option value="">-- No troop-based events --</option>'; return; }
+        select.innerHTML = ['<option value="">-- Select Troop Event --</option>'].concat(troopEvents.map(e => `<option value="${escapeHtml(e.eventName)}">${escapeHtml(e.eventName)}</option>`)).join('');
       }
 
       function normalizeName(name) {
@@ -1042,6 +1074,17 @@
         loadManualParticipationData(eventName);
       }
 
+      function onTroopEventSelected() {
+        const eventName = document.getElementById('troopEventSelect').value;
+        if (!eventName) { document.getElementById('troopEventActions').style.display = 'none'; document.getElementById('troopParticipationData').style.display = 'none'; return; }
+        selectedEvent = eventsData.find(e => e.eventName === eventName);
+        currentParticipationEventName = eventName;
+        if (!selectedEvent) return;
+        document.getElementById('troopEventActions').style.display = 'block';
+        populateMemberSelects();
+        loadTroopParticipationData(eventName);
+      }
+
       function calculateChestParticipation() {
         if (!selectedEvent) return;
         const status = document.getElementById('chestCalcStatus');
@@ -1125,6 +1168,40 @@
         }).catch(error => { status.textContent = 'Error: ' + error.message; status.classList.add('err'); });
       }
 
+      function submitTroopEntry() {
+        const status = document.getElementById('troopEntryStatus');
+        status.textContent = '';
+        status.className = 'status';
+        if (!selectedEvent) { status.textContent = 'Please select an event.'; status.classList.add('err'); return; }
+        const memberName = document.getElementById('troopMember').value;
+        const points = parseInt(document.getElementById('troopPoints').value) || 0;
+        if (!memberName) { status.textContent = 'Please select a member.'; status.classList.add('err'); return; }
+        status.textContent = 'Saving...';
+        fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'recordManualParticipation',
+            eventName: selectedEvent.eventName,
+            memberName,
+            points,
+            notes: '',
+            extra: ''
+          })
+        }).then(res => res.json()).then(result => {
+          if (result && result.success) {
+            status.textContent = result.message;
+            status.classList.add('ok');
+            document.getElementById('troopPoints').value = '';
+            document.getElementById('troopMember').value = '';
+            loadTroopParticipationData(selectedEvent.eventName);
+          } else {
+            status.textContent = result?.message || 'Failed.';
+            status.classList.add('err');
+          }
+        }).catch(error => { status.textContent = 'Error: ' + error.message; status.classList.add('err'); });
+      }
+
       function loadChestParticipationData(eventName) {
         const loadingIndicator = document.getElementById('chestLoadingIndicator');
         const participationDiv = document.getElementById('chestParticipationData');
@@ -1181,6 +1258,34 @@
         });
       }
 
+      function loadTroopParticipationData(eventName) {
+        const loadingIndicator = document.getElementById('troopLoadingIndicator');
+        const participationDiv = document.getElementById('troopParticipationData');
+        const thead = document.getElementById('troopParticipationTableHead');
+        const tbody = document.getElementById('troopParticipationTableBody');
+        participationDiv.style.display = 'block';
+        thead.innerHTML = '';
+        tbody.innerHTML = '';
+        loadingIndicator.style.display = 'block';
+        fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getEventParticipation', eventName })
+        }).then(res => res.json()).then(result => {
+          loadingIndicator.style.display = 'none';
+          if (result && result.success && result.data && result.data.length > 0) {
+            participationRawData = result.data;
+            ensureTroopSummaryLoaded().then(() => renderTroopParticipationData());
+          } else {
+            thead.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#7f8c8d;">No troop participation data yet.</td></tr>';
+          }
+        }).catch(error => {
+          loadingIndicator.style.display = 'none';
+          tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:40px; color:#ff5252;">Error: ' + error.message + '</td></tr>';
+        });
+      }
+
       function renderChestParticipationData() {
         const thead = document.getElementById('chestParticipationTableHead');
         const tbody = document.getElementById('chestParticipationTableBody');
@@ -1197,6 +1302,46 @@
       function renderManualParticipationData() {
         const thead = document.getElementById('manualParticipationTableHead');
         const tbody = document.getElementById('manualParticipationTableBody');
+        thead.innerHTML = '<tr><th>Member Name</th><th>G Level</th><th>Target</th><th>Achieved</th><th>Status</th></tr>';
+        tbody.innerHTML = '';
+        const eventTypeName = selectedEvent?.eventType || '';
+        const targets = getEventTroopTargets(eventTypeName);
+        const eventEndDate = parseDateSafe(selectedEvent?.endDate);
+
+        participationRawData.forEach(p => {
+          const pts = Number(p.value1 ?? 0);
+          const nameKey = normalizeName(p.memberName);
+          const troopSummary = troopSummaryMap[nameKey] || {};
+          const gLevelRaw = troopSummary.G_currentLevel ?? troopSummary.G ?? null;
+          const gLevel = gLevelRaw !== null && gLevelRaw !== undefined ? Number(gLevelRaw) : null;
+          const targetPoints = (targets && gLevel !== null && gLevel !== undefined)
+            ? Number(targets[String(gLevel)])
+            : null;
+          const joinDate = memberJoinDatesMap[nameKey] || null;
+          const notInClan = joinDate && eventEndDate && joinDate > eventEndDate;
+
+          let statusIcon = '<span class="status-icon na">—</span>';
+          if (!notInClan && targetPoints !== null && !isNaN(targetPoints)) {
+            if (pts >= targetPoints) {
+              statusIcon = '<span class="status-icon ok">✓</span>';
+            } else if (pts >= targetPoints * 0.9) {
+              statusIcon = '<span class="status-icon warn">!</span>';
+            } else {
+              statusIcon = '<span class="status-icon err">✕</span>';
+            }
+          }
+
+          const targetDisplay = targetPoints !== null && !isNaN(targetPoints) ? targetPoints : '—';
+          const gLevelDisplay = gLevel !== null && !isNaN(gLevel) ? gLevel : '—';
+          const row = document.createElement('tr');
+          row.innerHTML = `<td>${escapeHtml(p.memberName)}</td><td>${gLevelDisplay}</td><td>${targetDisplay}</td><td>${pts}</td><td style="text-align:center;">${statusIcon}</td>`;
+          tbody.appendChild(row);
+        });
+      }
+
+      function renderTroopParticipationData() {
+        const thead = document.getElementById('troopParticipationTableHead');
+        const tbody = document.getElementById('troopParticipationTableBody');
         thead.innerHTML = '<tr><th>Member Name</th><th>G Level</th><th>Target</th><th>Achieved</th><th>Status</th></tr>';
         tbody.innerHTML = '';
         const eventTypeName = selectedEvent?.eventType || '';
@@ -1497,7 +1642,7 @@
         }
       }
 
-      return { init, switchTab, loadEvents, onChestEventSelected, onManualEventSelected, submitManualEntry, calculateManualNonParticipants, calculateChestParticipation, submitCreateEvent, updateEventTypeMethod, submitAddEventType, renderEventTypesTable, cancelEditEventType, addTroopTargetRow, removeTroopTargetRow, editEventType, editEvent, deleteEvent, deleteEventType, viewEventParticipation, sortTable, sortManualTable };
+      return { init, switchTab, loadEvents, onChestEventSelected, onManualEventSelected, onTroopEventSelected, submitManualEntry, submitTroopEntry, calculateManualNonParticipants, calculateChestParticipation, submitCreateEvent, updateEventTypeMethod, submitAddEventType, renderEventTypesTable, cancelEditEventType, addTroopTargetRow, removeTroopTargetRow, editEventType, editEvent, deleteEvent, deleteEventType, viewEventParticipation, sortTable, sortManualTable };
     })();
   </script>
 </body>
