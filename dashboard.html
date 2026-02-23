@@ -739,7 +739,7 @@
         }
         
         countdownPanel.style.display = 'block';
-        countdownSubtitle.textContent = 'Resets at 23:59 on the period end date';
+        countdownSubtitle.textContent = '';
         
         const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
         const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
