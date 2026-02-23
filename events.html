@@ -904,6 +904,8 @@
         const options = ['<option value="">-- Select member --</option>'].concat(sorted.map(m => `<option value="${escapeHtml(m.name)}">${escapeHtml(m.name)}</option>`)).join('');
         const manualMember = document.getElementById('manualMember');
         if (manualMember) manualMember.innerHTML = options || '<option value="">-- No members --</option>';
+        const troopMember = document.getElementById('troopMember');
+        if (troopMember) troopMember.innerHTML = options || '<option value="">-- No members --</option>';
       }
 
       function populateChestEventSelect() {
