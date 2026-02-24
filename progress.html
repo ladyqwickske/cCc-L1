@@ -379,6 +379,14 @@
   </style>
 </head>
 <body>
+  <!-- Google Translate Widget -->
+  <div id="google_translate_element" style="position:fixed;top:8px;right:8px;z-index:99999;"></div>
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
+    }
+  </script>
+  <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
   <!-- Google Sign-In integration -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script>
@@ -910,9 +918,19 @@
       }
 
       function updateHighlights(summary) {
+        // Only count chests that deliver points for 'most active member'
         if (summary.mostActive) {
+          // If backend already filtered, use as is. Otherwise, filter here.
+          let chestCount = 0;
+          if (Array.isArray(summary.mostActive.chests)) {
+            // Only count chests with points > 0
+            chestCount = summary.mostActive.chests.filter(c => c && Number(c.points || c.pointsDelivered || 0) > 0).length;
+          } else if (typeof summary.mostActive.chestCount === 'number') {
+            // Fallback: use chestCount if no details available
+            chestCount = summary.mostActive.chestCount;
+          }
           document.getElementById('progMostActiveName').textContent = summary.mostActive.name;
-          document.getElementById('progMostActiveStats').textContent = (summary.mostActive.chestCount || 0) + ' chest contributions';
+          document.getElementById('progMostActiveStats').textContent = chestCount + ' chest contributions';
         }
         if (summary.fastestGrowing) {
           document.getElementById('progFastestGrowingName').textContent = summary.fastestGrowing.name;
@@ -930,8 +948,27 @@
       }
 
       function loadParticipationAndRender(events, members) {
-        // Filter out period-marker events (they're for period calculation only, not for participation tracking)
-        currentEvents = (events || []).filter(event => event.participationMethod !== 'period-marker');
+        // Only show events fully within the selected period
+        let periodStart = null;
+        let periodEnd = null;
+        // Try to extract from the current period label
+        const label = document.getElementById('progressPeriodDisplay')?.textContent || '';
+        const match = label.match(/(\w+ \d{1,2}, \d{4})\s*–\s*(\w+ \d{1,2}, \d{4})/);
+        if (match) {
+          periodStart = new Date(match[1]);
+          periodEnd = new Date(match[2]);
+        }
+        // Filter out period-marker events and those not fully within the period
+        currentEvents = (events || []).filter(event => {
+          if (event.participationMethod === 'period-marker') return false;
+          if (periodStart && periodEnd && event.startDate && event.endDate) {
+            const evStart = new Date(event.startDate);
+            const evEnd = new Date(event.endDate);
+            // Only include events fully within the period
+            return evStart >= periodStart && evEnd <= periodEnd;
+          }
+          return true;
+        });
         currentEvents.sort((a, b) => {
           const dateA = new Date(a.startDate);
           const dateB = new Date(b.startDate);
