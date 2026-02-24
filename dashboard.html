@@ -627,44 +627,63 @@ function formatDateUTC(date) {
 }
 // Helper: Parse date string as UTC
 function parseDateUTC(str) {
-  // Accepts 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'
+  // Accepts ISO, 'YYYY-MM-DD', or 'YYYY-MM-DD HH:MM:SS'
   if (!str) return null;
+  // If already a Date object, return as is
+  if (str instanceof Date) return str;
+  // ISO 8601 or fallback
+  let d = null;
   if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    return new Date(str + 'T00:00:00Z');
+    d = new Date(str + 'T00:00:00Z');
+  } else if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(str)) {
+    d = new Date(str.replace(' ', 'T') + 'Z');
+  } else {
+    d = new Date(str);
   }
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(str)) {
-    return new Date(str.replace(' ', 'T') + 'Z');
-  }
-  return new Date(str);
+  if (isNaN(d)) return null;
+  return d;
 }
 // Patch countdown and period display to use UTC
 function updateCountdownTimer(endDateStr) {
   const endInput = document.getElementById('endDate');
+  console.log('[Countdown] endDateStr:', endDateStr);
   let endDate = parseDateUTC(endDateStr);
-  if (!endDateStr || isNaN(endDate)) {
-    document.getElementById('countdownPanel').style.display = 'none';
+  console.log('[Countdown] parsed endDate:', endDate, 'isNaN:', endDate instanceof Date ? isNaN(endDate.getTime()) : 'not a Date');
+  if (!endDateStr || !(endDate instanceof Date) || isNaN(endDate.getTime())) {
+    // Show 00 for all fields if invalid
+    const countdownPanel = document.getElementById('countdownPanel');
+    const countdownSubtitle = document.getElementById('countdownSubtitle');
+    const countdownParts = document.getElementById('countdownParts');
+    if (countdownPanel && countdownSubtitle && countdownParts) {
+      countdownPanel.style.display = 'block';
+      countdownSubtitle.textContent = 'Invalid end date';
+      countdownParts.innerHTML = `
+        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Days</div></div>
+        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Hours</div></div>
+        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Minutes</div></div>
+        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Seconds</div></div>
+      `;
+    }
     return;
   }
   
   function updateDisplay() {
     const now = new Date();
     const timeLeft = endDate - now;
-    
+    console.log('[Countdown] now:', now, 'timeLeft(ms):', timeLeft);
     if (timeLeft <= 0) {
       countdownPanel.style.display = 'block';
       countdownSubtitle.textContent = 'Active Period has ended! 🔄';
       countdownParts.innerHTML = '';
       return;
     }
-    
     countdownPanel.style.display = 'block';
     countdownSubtitle.textContent = '';
-    
     const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
     const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-    
+    console.log('[Countdown] days:', days, 'hours:', hours, 'minutes:', minutes, 'seconds:', seconds);
     countdownParts.innerHTML = `
       <div class="countdown-part">
         <div class="countdown-value">${days}</div>
@@ -684,7 +703,6 @@ function updateCountdownTimer(endDateStr) {
       </div>
     `;
   }
-  
   updateDisplay();
   setInterval(updateDisplay, 1000);
 }
