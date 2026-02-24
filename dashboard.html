@@ -647,6 +647,7 @@ function parseDateUTC(str) {
 function updateCountdownTimer(endDateStr) {
   const endInput = document.getElementById('endDate');
   console.log('[Countdown] endDateStr:', endDateStr);
+  console.log('[Countdown] updateCountdownTimer CALLED with:', endDateStr);
   let endDate = parseDateUTC(endDateStr);
   console.log('[Countdown] parsed endDate:', endDate, 'isNaN:', endDate instanceof Date ? isNaN(endDate.getTime()) : 'not a Date');
   if (!endDateStr || !(endDate instanceof Date) || isNaN(endDate.getTime())) {
@@ -654,6 +655,11 @@ function updateCountdownTimer(endDateStr) {
     const countdownPanel = document.getElementById('countdownPanel');
     const countdownSubtitle = document.getElementById('countdownSubtitle');
     const countdownParts = document.getElementById('countdownParts');
+    if (!countdownPanel || !countdownSubtitle || !countdownParts) {
+      console.error('[Countdown] One or more countdown DOM elements are missing:', {
+        countdownPanel, countdownSubtitle, countdownParts
+      });
+    }
     if (countdownPanel && countdownSubtitle && countdownParts) {
       countdownPanel.style.display = 'block';
       countdownSubtitle.textContent = 'Invalid end date';
@@ -668,6 +674,15 @@ function updateCountdownTimer(endDateStr) {
   }
   
   function updateDisplay() {
+    const countdownPanel = document.getElementById('countdownPanel');
+    const countdownSubtitle = document.getElementById('countdownSubtitle');
+    const countdownParts = document.getElementById('countdownParts');
+    if (!countdownPanel || !countdownSubtitle || !countdownParts) {
+      console.error('[Countdown] One or more countdown DOM elements are missing (in updateDisplay):', {
+        countdownPanel, countdownSubtitle, countdownParts
+      });
+      return;
+    }
     const now = new Date();
     const timeLeft = endDate - now;
     console.log('[Countdown] now:', now, 'timeLeft(ms):', timeLeft);
