@@ -923,8 +923,10 @@ function filterPlayerTable() {
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              console.log('[Countdown] Calling updateCountdownTimer (Fallback) with:', end.toISOString());
-              updateCountdownTimer(end.toISOString());
+              // Use end of day UTC for countdown
+              const endDateStr = `${formatDate(end)}T23:59:59Z`;
+              console.log('[Countdown] Calling updateCountdownTimer (Fallback) with:', endDateStr);
+              updateCountdownTimer(endDateStr);
               loadDashboard();
               return;
             }
@@ -945,8 +947,9 @@ function filterPlayerTable() {
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              console.log('[Countdown] Calling updateCountdownTimer (No Events) with:', end.toISOString());
-              updateCountdownTimer(end.toISOString());
+              const endDateStr = `${formatDate(end)}T23:59:59Z`;
+              console.log('[Countdown] Calling updateCountdownTimer (No Events) with:', endDateStr);
+              updateCountdownTimer(endDateStr);
               loadDashboard();
               return;
             }
@@ -1003,8 +1006,9 @@ function filterPlayerTable() {
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            console.log('[Countdown] Calling updateCountdownTimer (Active Period) with:', end.toISOString());
-            updateCountdownTimer(end.toISOString());
+            const endDateStr = `${formatDate(end)}T23:59:59Z`;
+            console.log('[Countdown] Calling updateCountdownTimer (Active Period) with:', endDateStr);
+            updateCountdownTimer(endDateStr);
             loadDashboard();
           })
           .catch(error => {
@@ -1017,8 +1021,9 @@ function filterPlayerTable() {
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            console.log('[Countdown] Calling updateCountdownTimer (Error) with:', end.toISOString());
-            updateCountdownTimer(end.toISOString());
+            const endDateStr = `${formatDate(end)}T23:59:59Z`;
+            console.log('[Countdown] Calling updateCountdownTimer (Error) with:', endDateStr);
+            updateCountdownTimer(endDateStr);
             loadDashboard();
           console.log('[Countdown] dashboard.html script loaded and executed.');
           });
