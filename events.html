@@ -1,3 +1,15 @@
+    // Format a date string as UTC (YYYY-MM-DD HH:mm UTC)
+    function formatDateUTC(dateStr) {
+      if (!dateStr) return '';
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return dateStr;
+      const yyyy = d.getUTCFullYear();
+      const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(d.getUTCDate()).padStart(2, '0');
+      const hh = String(d.getUTCHours()).padStart(2, '0');
+      const min = String(d.getUTCMinutes()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} ${hh}:${min} UTC`;
+    }
 <!DOCTYPE html>
 <html>
 <head>
@@ -867,7 +879,7 @@
             : `<button class="btn action-btn" onclick="EventsTab.viewEventParticipation('${escapeHtml(event.eventName)}')">👁 View</button>`;
           
           const row = document.createElement('tr');
-          row.innerHTML = `<td class="event-name">${escapeHtml(event.eventName)}</td><td>${escapeHtml(event.eventType)}</td><td>${event.startDate}</td><td>${event.endDate}</td><td>${methodBadge}</td><td>${viewButton}<button class="btn action-btn" onclick="EventsTab.editEvent('${escapeHtml(event.eventName)}')">✏️ Edit</button><button class="btn action-btn btn-secondary" onclick="EventsTab.deleteEvent('${escapeHtml(event.eventName)}')">🗑️ Delete</button></td>`;
+          row.innerHTML = `<td class="event-name">${escapeHtml(event.eventName)}</td><td>${escapeHtml(event.eventType)}</td><td>${formatDateUTC(event.startDate)}</td><td>${formatDateUTC(event.endDate)}</td><td>${methodBadge}</td><td>${viewButton}<button class="btn action-btn" onclick="EventsTab.editEvent('${escapeHtml(event.eventName)}')">✏️ Edit</button><button class="btn action-btn btn-secondary" onclick="EventsTab.deleteEvent('${escapeHtml(event.eventName)}')">🗑️ Delete</button></td>`;
           tbody.appendChild(row);
         });
       }

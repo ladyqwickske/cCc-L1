@@ -588,7 +588,7 @@
     <div class="countdown-panel" id="countdownPanel" style="display:none;">
       <div class="countdown-title">⏳ Period Ends In</div>
       <div class="countdown-parts" id="countdownParts"></div>
-      <div class="countdown-subtitle" id="countdownSubtitle">Resets at 23:59 on the period end date</div>
+      <div class="countdown-subtitle" id="countdownSubtitle">Resets at 23:59 UTC on the period end date</div>
     </div>
     
     <div class="date-filter">
@@ -620,8 +620,77 @@
   </div>
 
   <script>
-    // --- Table filter and sort functions must be defined before any inline event handler usage ---
-    function filterPlayerTable() {
+    // Helper: Format date in UTC
+function formatDateUTC(date) {
+  if (!(date instanceof Date)) return '';
+  return date.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
+}
+// Helper: Parse date string as UTC
+function parseDateUTC(str) {
+  // Accepts 'YYYY-MM-DD' or 'YYYY-MM-DD HH:MM:SS'
+  if (!str) return null;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
+    return new Date(str + 'T00:00:00Z');
+  }
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(str)) {
+    return new Date(str.replace(' ', 'T') + 'Z');
+  }
+  return new Date(str);
+}
+// Patch countdown and period display to use UTC
+function updateCountdownTimer(endDateStr) {
+  const endInput = document.getElementById('endDate');
+  let endDate = parseDateUTC(endDateStr);
+  if (!endDateStr || isNaN(endDate)) {
+    document.getElementById('countdownPanel').style.display = 'none';
+    return;
+  }
+  
+  function updateDisplay() {
+    const now = new Date();
+    const timeLeft = endDate - now;
+    
+    if (timeLeft <= 0) {
+      countdownPanel.style.display = 'block';
+      countdownSubtitle.textContent = 'Active Period has ended! 🔄';
+      countdownParts.innerHTML = '';
+      return;
+    }
+    
+    countdownPanel.style.display = 'block';
+    countdownSubtitle.textContent = '';
+    
+    const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
+    
+    countdownParts.innerHTML = `
+      <div class="countdown-part">
+        <div class="countdown-value">${days}</div>
+        <div class="countdown-label">Days</div>
+      </div>
+      <div class="countdown-part">
+        <div class="countdown-value">${String(hours).padStart(2, '0')}</div>
+        <div class="countdown-label">Hours</div>
+      </div>
+      <div class="countdown-part">
+        <div class="countdown-value">${String(minutes).padStart(2, '0')}</div>
+        <div class="countdown-label">Minutes</div>
+      </div>
+      <div class="countdown-part">
+        <div class="countdown-value">${String(seconds).padStart(2, '0')}</div>
+        <div class="countdown-label">Seconds</div>
+      </div>
+    `;
+  }
+  
+  updateDisplay();
+  setInterval(updateDisplay, 1000);
+}
+
+// --- Table filter and sort functions must be defined before any inline event handler usage ---
+function filterPlayerTable() {
       const input = document.getElementById('playerFilterInput');
       const filter = input ? input.value.trim().toLowerCase() : '';
       const table = document.getElementById('playerTable');

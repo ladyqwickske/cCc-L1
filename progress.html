@@ -1,3 +1,15 @@
+    // Format a date as UTC (YYYY-MM-DD HH:mm UTC)
+    function formatDateUTC(date) {
+      if (!date) return '';
+      if (!(date instanceof Date)) date = new Date(date);
+      if (isNaN(date.getTime())) return '';
+      const yyyy = date.getUTCFullYear();
+      const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+      const dd = String(date.getUTCDate()).padStart(2, '0');
+      const hh = String(date.getUTCHours()).padStart(2, '0');
+      const min = String(date.getUTCMinutes()).padStart(2, '0');
+      return `${yyyy}-${mm}-${dd} ${hh}:${min} UTC`;
+    }
 <!DOCTYPE html>
 <html>
 <head>
@@ -760,17 +772,23 @@
           }
         });
 
-        const today = new Date();
-        const formatDisplayDate = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+        // Always use UTC for today
+        const now = new Date();
+        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const formatDisplayDate = (date) => {
+          if (!date) return '';
+          return `${date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} (UTC)`;
+        };
         let periodLabel = '';
         let startDate = null;
         let endDate = null;
 
         function formatDate(date) {
           if (!date) return '';
-          const yyyy = date.getFullYear();
-          const mm = String(date.getMonth() + 1).padStart(2, '0');
-          const dd = String(date.getDate()).padStart(2, '0');
+          // Always format as UTC
+          const yyyy = date.getUTCFullYear();
+          const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const dd = String(date.getUTCDate()).padStart(2, '0');
           return `${yyyy}-${mm}-${dd}`;
         }
 
@@ -1058,11 +1076,11 @@
             const key = `${normalizeName(member.name)}__${event.name}`;
             const participation = currentParticipationMap[key];
 
-            const eventStart = parseDateSafe(event.startDate);
-            const eventEnd = parseDateSafe(event.endDate);
-            const memberJoinDate = parseDateSafe(member.joinDate);
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
+            // Always parse and compare dates in UTC
+            const eventStart = event.startDate ? new Date(event.startDate + 'T00:00:00Z') : null;
+            const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : null;
+            const memberJoinDate = member.joinDate ? new Date(member.joinDate + 'T00:00:00Z') : null;
+            const today = new Date(Date.UTC((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate()));
             const hasNotStarted = eventStart && eventStart > today;
             const memberJoinedAfterEvent = memberJoinDate && eventEnd && memberJoinDate > eventEnd;
 

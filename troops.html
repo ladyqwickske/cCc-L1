@@ -629,64 +629,79 @@
           if (overlay) overlay.style.display = 'none';
         } else {
           setReadOnlyMode(true);
-          const errorDiv = document.getElementById('login-error');
-          if (errorDiv) {
-            errorDiv.style.display = 'block';
-            errorDiv.textContent = 'Your account does not have editor access';
+          const tableDiv = document.getElementById('troopMembersTable');
+          const tbody = document.getElementById('troopMembersTableBody');
+          if (!tableDiv || !tbody || !Array.isArray(summaryData)) return;
+
+          const sorted = summaryData.slice().sort((a, b) => {
+            const aVal = getSortValue(a, currentSort.column);
+            const bVal = getSortValue(b, currentSort.column);
+
+            if (aVal === null && bVal === null) return 0;
+            if (aVal === null) return 1;
+            if (bVal === null) return -1;
+
+            let result = 0;
+            if (currentSort.column === 'playerName') {
+              result = aVal.localeCompare(bVal);
+            } else {
+              result = aVal - bVal;
+            }
+
+            return currentSort.direction === 'asc' ? result : -result;
+          });
+
+          const types = ['G', 'M', 'S', 'E', 'C'];
+
+          tbody.innerHTML = '';
+          sorted.forEach(member => {
+            const row = document.createElement('tr');
+
+            const nameCell = document.createElement('td');
+            nameCell.style.fontWeight = '500';
+            nameCell.textContent = member.playerName;
+            row.appendChild(nameCell);
+
+            types.forEach(type => {
+              const levelCell = document.createElement('td');
+              const isCryptType = type === 'C';
+              levelCell.className = isCryptType ? 'center crypt-col' : 'center';
+              levelCell.style.fontWeight = '600';
+
+              const currentLevelKey = `${type}_currentLevel`;
+              const startLevelKey = `${type}_startLevel`;
+              const currentLevel = member[currentLevelKey];
+              const startLevel = member[startLevelKey];
+
+              levelCell.textContent = currentLevel !== undefined && currentLevel !== null ? currentLevel : '-';
+              row.appendChild(levelCell);
+
+              const dateCell = document.createElement('td');
+              dateCell.className = isCryptType ? 'center crypt-col' : 'center';
+              const currentDateKey = `${type}_currentDate`;
+              const currentDate = member[currentDateKey];
+              dateCell.textContent = currentDate ? formatUTCDate(currentDate) : '-';
+              row.appendChild(dateCell);
+            });
+
+            tbody.appendChild(row);
+          });
+        }
+
+        // Helper to format date as UTC
+        function formatUTCDate(dateStr) {
+          if (!dateStr) return '-';
+          try {
+            const date = new Date(dateStr);
+            if (isNaN(date.getTime())) return dateStr;
+            const year = date.getUTCFullYear();
+            const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
+            const day = date.getUTCDate();
+            return `${month} ${day}, ${year} (UTC)`;
+          } catch (e) {
+            return dateStr;
           }
         }
-      } catch (error) {
-        console.error('Error during sign-in:', error);
-        const errorDiv = document.getElementById('login-error');
-        if (errorDiv) {
-          errorDiv.style.display = 'block';
-          errorDiv.textContent = 'Sign-in failed: ' + error.message;
-        }
-      }
-    };
-
-    window.addEventListener('DOMContentLoaded', () => {
-      const token = (() => { try { return localStorage.getItem(AUTH_KEY); } catch (e) { return null; } })();
-      const email = (() => { try { return localStorage.getItem(AUTH_EMAIL_KEY); } catch (e) { return null; } })();
-      if (token && email) {
-        setReadOnlyMode(false);
-        updateSignedInBadge(email);
-      } else {
-        setReadOnlyMode(true);
-        updateSignedInBadge(null);
-        let nav = document.querySelector('.tab-nav-container');
-        if (nav && !document.getElementById('signInManageBtn')) {
-          const btn = document.createElement('button');
-          btn.id = 'signInManageBtn';
-          btn.textContent = '🔑 Sign in to Manage';
-          btn.style = 'margin-left:16px;padding:8px 18px;background:#1a73e8;color:#fff;border:none;border-radius:5px;font-size:14px;font-weight:600;cursor:pointer;transition:background 0.2s;';
-          btn.onclick = showGoogleLogin;
-          nav.appendChild(btn);
-        }
-      }
-    });
-  </script>
-
-  <nav class="tab-nav">
-    <div class="tab-nav-container">
-      <div class="nav-brand" id="navBrand"><img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions</div>
-      <button class="hamburger" id="navHamburger" aria-label="Toggle navigation">
-        <span></span>
-        <span></span>
-        <span></span>
-      </button>
-      <div class="tab-buttons" id="navTabs">
-        <a href="dashboard.html" class="tab-btn" title="Dashboard">
-          <img src="chests.png" alt="Dashboard" class="tab-icon desktop-only">
-          <span class="tab-label mobile-only">Dashboard</span>
-        </a>
-        <a href="events.html" class="tab-btn" title="Events">
-          <img src="events.png" alt="Events" class="tab-icon desktop-only">
-          <span class="tab-label mobile-only">Events</span>
-        </a>
-        <a href="members.html" class="tab-btn" title="Members">
-          <img src="members.png" alt="Members" class="tab-icon desktop-only">
-          <span class="tab-label mobile-only">Members</span>
         </a>
         <a href="troops.html" class="tab-btn active" title="Troops">
           <img src="troops.png" alt="Troops" class="tab-icon desktop-only">
