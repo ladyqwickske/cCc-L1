@@ -149,6 +149,7 @@
     .player-red { color: #ff5252; font-weight: 500; }
     .player-orange { color: #ffb300; font-weight: 500; }
     .player-green { color: #8bc34a; font-weight: 600; }
+    .new-member-row .cell:nth-child(2) { color: #64b5f6; font-style: italic; }
     .date-filter {
       background: #232526;
       border-radius: 8px;
@@ -683,6 +684,7 @@
 
     const isSidebar = false;
     const expandedTypes = new Set();
+    let currentViewingStartDate = null; // Store start date for highlighting new members
     
     // Update UI based on read-only mode
     function updateReadOnlyUI() {
@@ -733,7 +735,7 @@
         
         if (timeLeft <= 0) {
           countdownPanel.style.display = 'block';
-          countdownSubtitle.textContent = 'Period has ended! 🔄';
+          countdownSubtitle.textContent = 'Active Period has ended! 🔄';
           countdownParts.innerHTML = '';
           return;
         }
@@ -1044,6 +1046,7 @@
     function loadDashboard() {
       const startDate = document.getElementById('startDate').value;
       const endDate = document.getElementById('endDate').value;
+      currentViewingStartDate = startDate; // Store for new member highlighting
       document.getElementById('playerList').innerHTML = '<div class="loading">Loading...</div>';
       
       // Store for re-rendering after splits load
@@ -1173,8 +1176,27 @@
         const commonCryptInfo = player.chestsByTypeGrouped?.['Common Crypt'];
         const totalPointsVal = player.totalPoints || 0;
         const pointsClass = totalPointsVal >= 3000 ? 'player-green' : (totalPointsVal >= 2700 ? 'player-orange' : 'player-red');
-        rowsHtml += '<div class="player-row">';
-        rowsHtml += `<div class="cell rank-col">${idx+1}</div><div class="cell ${pointsClass}">${player.player}</div><div class="cell">${totalPointsVal || '-'}</div>`;
+        
+        // Check if member joined after the current viewing start date
+        let isNewMember = false;
+        let joinDateLabel = '';
+        if (player.joinDate && currentViewingStartDate) {
+          const joinDate = new Date(player.joinDate);
+          const viewStartDate = new Date(currentViewingStartDate);
+          isNewMember = joinDate > viewStartDate;
+          if (isNewMember) {
+            // Calculate days ago from today
+            const today = new Date();
+            const timeDiff = today - joinDate;
+            const daysAgo = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            const daysLabel = daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+            joinDateLabel = ` <span style="font-size:10px;opacity:0.8;">(Joined: ${daysLabel})</span>`;
+          }
+        }
+        
+        const rowClass = isNewMember ? 'player-row new-member-row' : 'player-row';
+        rowsHtml += `<div class="${rowClass}">`;
+        rowsHtml += `<div class="cell rank-col">${idx+1}</div><div class="cell ${pointsClass}">${player.player}${joinDateLabel}</div><div class="cell">${totalPointsVal || '-'}</div>`;
         // Calculate total chests: use totalChests if available, otherwise sum from chestsByTypeGrouped (don't double-count eventChests!)
         let totalChests = player.totalChests || 0;
         if (totalChests === 0 && player.chestsByTypeGrouped) {
