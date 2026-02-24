@@ -627,9 +627,16 @@ function formatDateUTC(date) {
 }
 // Helper: Parse date string as UTC
 function parseDateUTC(str) {
+  console.log('[Countdown] parseDateUTC START:', str);
   // Accepts ISO, 'YYYY-MM-DD', or 'YYYY-MM-DD HH:MM:SS'
-  if (!str) return null;
-  if (str instanceof Date) return str;
+  if (!str) {
+    console.log('[Countdown] parseDateUTC END (empty input)');
+    return null;
+  }
+  if (str instanceof Date) {
+    console.log('[Countdown] parseDateUTC END (already Date)', str);
+    return str;
+  }
   let d = null;
   // ISO 8601 with Z or offset
   if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(str)) {
@@ -641,8 +648,12 @@ function parseDateUTC(str) {
   } else {
     d = new Date(str);
   }
-  console.log('[Countdown] parseDateUTC input:', str, 'parsed:', d, 'isNaN:', isNaN(d.getTime()));
-  if (isNaN(d.getTime())) return null;
+  console.log('[Countdown] parseDateUTC parsed:', d, 'isNaN:', isNaN(d.getTime()));
+  if (isNaN(d.getTime())) {
+    console.log('[Countdown] parseDateUTC END (invalid date)', str);
+    return null;
+  }
+  console.log('[Countdown] parseDateUTC END (success)', d);
   return d;
 }
 // Patch countdown and period display to use UTC
@@ -650,9 +661,12 @@ function updateCountdownTimer(endDateStr) {
   const endInput = document.getElementById('endDate');
   console.log('[Countdown] endDateStr:', endDateStr);
   console.log('[Countdown] updateCountdownTimer CALLED with:', endDateStr);
+  console.log('[Countdown] updateCountdownTimer START:', endDateStr);
   let endDate = parseDateUTC(endDateStr);
+  console.log('[Countdown] updateCountdownTimer after parseDateUTC:', endDate);
   console.log('[Countdown] parsed endDate:', endDate, 'isNaN:', endDate instanceof Date ? isNaN(endDate.getTime()) : 'not a Date');
   if (!endDateStr || !(endDate instanceof Date) || isNaN(endDate.getTime())) {
+    console.log('[Countdown] Early return: invalid endDateStr or endDate');
     // Show 00 for all fields if invalid
     const countdownPanel = document.getElementById('countdownPanel');
     const countdownSubtitle = document.getElementById('countdownSubtitle');
@@ -672,10 +686,12 @@ function updateCountdownTimer(endDateStr) {
         <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Seconds</div></div>
       `;
     }
+    console.log('[Countdown] updateCountdownTimer END (invalid date)');
     return;
   }
   
   function updateDisplay() {
+    console.log('[Countdown] updateDisplay START');
     const countdownPanel = document.getElementById('countdownPanel');
     const countdownSubtitle = document.getElementById('countdownSubtitle');
     const countdownParts = document.getElementById('countdownParts');
@@ -683,6 +699,7 @@ function updateCountdownTimer(endDateStr) {
       console.error('[Countdown] One or more countdown DOM elements are missing (in updateDisplay):', {
         countdownPanel, countdownSubtitle, countdownParts
       });
+      console.log('[Countdown] updateDisplay END (missing DOM elements)');
       return;
     }
     const now = new Date();
@@ -692,6 +709,7 @@ function updateCountdownTimer(endDateStr) {
       countdownPanel.style.display = 'block';
       countdownSubtitle.textContent = 'Active Period has ended! 🔄';
       countdownParts.innerHTML = '';
+      console.log('[Countdown] updateDisplay END (period ended)');
       return;
     }
     countdownPanel.style.display = 'block';
@@ -719,9 +737,14 @@ function updateCountdownTimer(endDateStr) {
         <div class="countdown-label">Seconds</div>
       </div>
     `;
+    console.log('[Countdown] updateDisplay END (success)');
   }
   updateDisplay();
   setInterval(updateDisplay, 1000);
+  console.log('[Countdown] updateCountdownTimer END');
+window.addEventListener('error', function(e) {
+  console.error('[Countdown] GLOBAL JS ERROR:', e.message, e.filename, e.lineno, e.colno, e.error);
+});
 }
 
 // --- Table filter and sort functions must be defined before any inline event handler usage ---
