@@ -648,73 +648,70 @@ function parseDateUTC(str) {
 }
 // Patch countdown and period display to use UTC
 function updateCountdownTimer(endDateStr) {
-  const endInput = document.getElementById('endDate');
-  let endDate = parseDateUTC(endDateStr);
+  // Always treat endDateStr as UTC and append 'T23:59:59Z' if only a date is provided
+  let endDate;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(endDateStr)) {
+    endDate = new Date(endDateStr + 'T23:59:59Z');
+    console.log('[Countdown][DEBUG] Parsed endDate from date only:', endDateStr, '->', endDate.toISOString());
+  } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(endDateStr)) {
+    endDate = new Date(endDateStr);
+    console.log('[Countdown][DEBUG] Parsed endDate from ISO string:', endDateStr, '->', endDate.toISOString());
+  } else {
+    // fallback: try to parse as UTC
+    endDate = new Date(endDateStr + 'Z');
+    console.log('[Countdown][DEBUG] Fallback parse endDate:', endDateStr, '->', endDate.toISOString());
+  }
   if (!endDateStr || !(endDate instanceof Date) || isNaN(endDate.getTime())) {
+    console.warn('[Countdown][DEBUG] Invalid endDate:', endDateStr, endDate);
     // Show 00 for all fields if invalid
     const countdownPanel = document.getElementById('countdownPanel');
     const countdownSubtitle = document.getElementById('countdownSubtitle');
     const countdownParts = document.getElementById('countdownParts');
-    if (!countdownPanel || !countdownSubtitle || !countdownParts) {
-      console.error('[Countdown] One or more countdown DOM elements are missing:', {
-        countdownPanel, countdownSubtitle, countdownParts
-      });
-    }
-    if (countdownPanel && countdownSubtitle && countdownParts) {
-      countdownPanel.style.display = 'block';
-      countdownSubtitle.textContent = 'Invalid end date';
-      countdownParts.innerHTML = `
-        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Days</div></div>
-        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Hours</div></div>
-        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Minutes</div></div>
-        <div class="countdown-part"><div class="countdown-value">00</div><div class="countdown-label">Seconds</div></div>
-      `;
-    }
+    if (!countdownPanel || !countdownSubtitle || !countdownParts) return;
+    countdownPanel.style.display = 'block';
+    countdownSubtitle.textContent = '';
+    countdownParts.innerHTML = '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Days</span></div>' +
+      '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Hours</span></div>' +
+      '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Minutes</span></div>' +
+      '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Seconds</span></div>';
     return;
   }
-  
+
   function updateDisplay() {
     const countdownPanel = document.getElementById('countdownPanel');
     const countdownSubtitle = document.getElementById('countdownSubtitle');
     const countdownParts = document.getElementById('countdownParts');
-    if (!countdownPanel || !countdownSubtitle || !countdownParts) {
-      console.error('[Countdown] One or more countdown DOM elements are missing (in updateDisplay):', {
-        countdownPanel, countdownSubtitle, countdownParts
-      });
-      return;
-    }
+    if (!countdownPanel || !countdownSubtitle || !countdownParts) return;
+    // Use current UTC time
     const now = new Date();
-    const timeLeft = endDate - now;
+    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    const timeLeft = endDate - nowUTC;
+    console.log('[Countdown][DEBUG] now:', now.toISOString(), 'nowUTC:', nowUTC.toISOString(), 'endDate:', endDate.toISOString(), 'timeLeft(ms):', timeLeft);
     if (timeLeft <= 0) {
       countdownPanel.style.display = 'block';
-      countdownSubtitle.textContent = 'Active Period has ended! 🔄';
-      countdownParts.innerHTML = '';
+      countdownSubtitle.textContent = 'Event period has ended.';
+      countdownParts.innerHTML = '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Days</span></div>' +
+        '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Hours</span></div>' +
+        '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Minutes</span></div>' +
+        '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Seconds</span></div>';
+      console.log('[Countdown][DEBUG] Timer ended.');
       return;
     }
     countdownPanel.style.display = 'block';
-    countdownSubtitle.textContent = '';
-    const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-    countdownParts.innerHTML = `
-      <div class="countdown-part">
-        <div class="countdown-value">${days}</div>
-        <div class="countdown-label">Days</div>
-      </div>
-      <div class="countdown-part">
-        <div class="countdown-value">${String(hours).padStart(2, '0')}</div>
-        <div class="countdown-label">Hours</div>
-      </div>
-      <div class="countdown-part">
-        <div class="countdown-value">${String(minutes).padStart(2, '0')}</div>
-        <div class="countdown-label">Minutes</div>
-      </div>
-      <div class="countdown-part">
-        <div class="countdown-value">${String(seconds).padStart(2, '0')}</div>
-        <div class="countdown-label">Seconds</div>
-      </div>
-    `;
+    countdownSubtitle.textContent = 'All times are shown in UTC.';
+    let seconds = Math.floor(timeLeft / 1000);
+    const days = Math.floor(seconds / 86400);
+    seconds %= 86400;
+    const hours = Math.floor(seconds / 3600);
+    seconds %= 3600;
+    const minutes = Math.floor(seconds / 60);
+    seconds %= 60;
+    countdownParts.innerHTML =
+      `<div class="countdown-part"><span class="countdown-value">${String(days).padStart(2, '0')}</span><span class="countdown-label">Days</span></div>` +
+      `<div class="countdown-part"><span class="countdown-value">${String(hours).padStart(2, '0')}</span><span class="countdown-label">Hours</span></div>` +
+      `<div class="countdown-part"><span class="countdown-value">${String(minutes).padStart(2, '0')}</span><span class="countdown-label">Minutes</span></div>` +
+      `<div class="countdown-part"><span class="countdown-value">${String(seconds).padStart(2, '0')}</span><span class="countdown-label">Seconds</span></div>`;
+    console.log('[Countdown][DEBUG] Timer running. Days:', days, 'Hours:', hours, 'Minutes:', minutes, 'Seconds:', seconds);
   }
   updateDisplay();
   setInterval(updateDisplay, 1000);
@@ -889,7 +886,7 @@ function filterPlayerTable() {
               const start = new Date(today);
               start.setDate(start.getDate() - start.getDay());
               const end = new Date(start);
-              end.setDate(start.getDate() + 6);
+              end.setDate(end.getDate() + 6);
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
@@ -963,7 +960,7 @@ function filterPlayerTable() {
             const start = new Date(today);
             start.setDate(start.getDate() - start.getDay());
             const end = new Date(start);
-            end.setDate(start.getDate() + 6);
+            end.setDate(end.getDate() + 6);
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
