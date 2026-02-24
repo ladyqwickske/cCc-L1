@@ -852,62 +852,7 @@ function filterPlayerTable() {
       return { success: true, data: result }; // Default
     }
 
-    function updateCountdownTimer(endDateStr) {
-      const endInput = document.getElementById('endDate');
-      const countdownPanel = document.getElementById('countdownPanel');
-      const countdownParts = document.getElementById('countdownParts');
-      const countdownSubtitle = document.getElementById('countdownSubtitle');
-      
-      if (!endDateStr) {
-        countdownPanel.style.display = 'none';
-        return;
-      }
-      
-      function updateDisplay() {
-        const now = new Date();
-        const endDate = new Date(endDateStr + 'T23:59:59');
-        const timeLeft = endDate - now;
-        
-        if (timeLeft <= 0) {
-          countdownPanel.style.display = 'block';
-          countdownSubtitle.textContent = 'Active Period has ended! 🔄';
-          countdownParts.innerHTML = '';
-          return;
-        }
-        
-        countdownPanel.style.display = 'block';
-        countdownSubtitle.textContent = '';
-        
-        const days = Math.floor(timeLeft / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((timeLeft % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((timeLeft % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((timeLeft % (1000 * 60)) / 1000);
-        
-        countdownParts.innerHTML = `
-          <div class="countdown-part">
-            <div class="countdown-value">${days}</div>
-            <div class="countdown-label">Days</div>
-          </div>
-          <div class="countdown-part">
-            <div class="countdown-value">${String(hours).padStart(2, '0')}</div>
-            <div class="countdown-label">Hours</div>
-          </div>
-          <div class="countdown-part">
-            <div class="countdown-value">${String(minutes).padStart(2, '0')}</div>
-            <div class="countdown-label">Minutes</div>
-          </div>
-          <div class="countdown-part">
-            <div class="countdown-value">${String(seconds).padStart(2, '0')}</div>
-            <div class="countdown-label">Seconds</div>
-          </div>
-        `;
-      }
-      
-      updateDisplay();
-      setInterval(updateDisplay, 1000);
-    }
-
-    // Dashboard
+      // Dashboard
     window.onload = function() { 
       setDateRange('lastday');
     };
