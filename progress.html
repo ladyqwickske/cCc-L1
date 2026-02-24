@@ -583,13 +583,13 @@
     </div>
 
     <div class="period-tabs">
-      <button class="period-btn active" onclick="ProgressTab.setPeriod('week')" data-period="week">📅 This Week</button>
-      <button class="period-btn" onclick="ProgressTab.setPeriod('prevweek')" data-period="prevweek">⬅️ Previous Period</button>
-      <button class="period-btn" onclick="ProgressTab.setPeriod('month')" data-period="month">📆 This Month</button>
-      <button class="period-btn" onclick="ProgressTab.setPeriod('2months')" data-period="2months">📊 Last 2 Months</button>
+      <button class="period-btn active" onclick="ProgressTab.setPeriod('active')" data-period="active">⏳ Active Period</button>
+      <button class="period-btn" onclick="ProgressTab.setPeriod('prev')" data-period="prev">⬅️ Previous Period</button>
+      <button class="period-btn" onclick="ProgressTab.setPeriod('currentmonth')" data-period="currentmonth">📆 Current Month</button>
+      <button class="period-btn" onclick="ProgressTab.setPeriod('lastmonth')" data-period="lastmonth">📊 Last Month</button>
     </div>
 
-    <div class="date-range-display" id="progressPeriodDisplay">Viewing: This Week (Sun–Sat)</div>
+    <div class="date-range-display" id="progressPeriodDisplay">Viewing: Active Period</div>
 
     <div class="summary-cards">
       <div class="summary-card"><h3>Total Members</h3><div class="value" id="progTotalMembers">-</div></div>
@@ -738,7 +738,7 @@
           .catch(onError);
       }
 
-      function setPeriod(period) {
+      async function setPeriod(period) {
         currentPeriod = period;
         document.querySelectorAll('.period-btn').forEach(btn => {
           if (btn.dataset.period === period) {
@@ -755,33 +755,108 @@
         const today = new Date();
         const formatDisplayDate = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
         let periodLabel = '';
+        let startDate = null;
+        let endDate = null;
 
-        if (period === 'week') {
-          const start = new Date(today);
-          start.setDate(start.getDate() - start.getDay());
-          const end = new Date(start);
-          end.setDate(end.getDate() + 6);
-          periodLabel = `Viewing: This Week (Sun–Sat): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-        } else if (period === 'prevweek') {
-          const start = new Date(today);
-          start.setDate(start.getDate() - start.getDay());
-          start.setDate(start.getDate() - 7);
-          const end = new Date(start);
-          end.setDate(end.getDate() + 6);
-          periodLabel = `Viewing: Previous Period: ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-        } else if (period === 'month') {
-          const start = new Date(today.getFullYear(), today.getMonth(), 1);
-          const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-          periodLabel = `Viewing: This Month: ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-        } else if (period === '2months') {
-          const start = new Date(today.getFullYear(), today.getMonth() - 2, 1);
-          const end = today;
-          periodLabel = `Viewing: Last 2 Months: ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+        function formatDate(date) {
+          if (!date) return '';
+          const yyyy = date.getFullYear();
+          const mm = String(date.getMonth() + 1).padStart(2, '0');
+          const dd = String(date.getDate()).padStart(2, '0');
+          return `${yyyy}-${mm}-${dd}`;
+        }
+
+        if (period === 'active' || period === 'prev') {
+          try {
+            const res = await fetch(window.GAS_WEB_APP_URL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'getAllEvents' })
+            });
+            const result = await res.json();
+            const allEvents = result.events || [];
+            const periodEvents = allEvents.filter(e => e.eventType === 'Ruthless Slaughter' || e.participationMethod === 'period-marker');
+            periodEvents.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            const todayStr = formatDate(today);
+            let activePeriod = null;
+            for (let i = 0; i < periodEvents.length; i++) {
+              const event = periodEvents[i];
+              if (event.startDate <= todayStr && event.endDate >= todayStr) {
+                activePeriod = event;
+                break;
+              }
+            }
+            if (!activePeriod) {
+              for (let i = periodEvents.length - 1; i >= 0; i--) {
+                if (periodEvents[i].endDate < todayStr) {
+                  activePeriod = periodEvents[i];
+                  break;
+                }
+              }
+            }
+            let previousPeriod = null;
+            if (activePeriod) {
+              const activeStartStr = activePeriod.startDate;
+              for (let i = periodEvents.length - 1; i >= 0; i--) {
+                if (periodEvents[i].endDate < activeStartStr) {
+                  previousPeriod = periodEvents[i];
+                  break;
+                }
+              }
+            }
+            if (period === 'active' && activePeriod) {
+              startDate = new Date(activePeriod.startDate);
+              endDate = new Date(activePeriod.endDate);
+              periodLabel = `Viewing: Active Period (${activePeriod.eventName || ''}): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+            } else if (period === 'prev' && previousPeriod) {
+              startDate = new Date(previousPeriod.startDate);
+              endDate = new Date(previousPeriod.endDate);
+              periodLabel = `Viewing: Previous Period (${previousPeriod.eventName || ''}): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+            } else {
+              // Fallback to calendar week
+              if (period === 'active') {
+                startDate = new Date(today);
+                startDate.setDate(startDate.getDate() - startDate.getDay());
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 6);
+                periodLabel = `Viewing: Active Period (Fallback): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+              } else {
+                startDate = new Date(today);
+                startDate.setDate(startDate.getDate() - startDate.getDay() - 7);
+                endDate = new Date(startDate);
+                endDate.setDate(endDate.getDate() + 6);
+                periodLabel = `Viewing: Previous Period (Fallback): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+              }
+            }
+          } catch (e) {
+            // Fallback to calendar week
+            if (period === 'active') {
+              startDate = new Date(today);
+              startDate.setDate(startDate.getDate() - startDate.getDay());
+              endDate = new Date(startDate);
+              endDate.setDate(endDate.getDate() + 6);
+              periodLabel = `Viewing: Active Period (Error): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+            } else {
+              startDate = new Date(today);
+              startDate.setDate(startDate.getDate() - startDate.getDay() - 7);
+              endDate = new Date(startDate);
+              endDate.setDate(endDate.getDate() + 6);
+              periodLabel = `Viewing: Previous Period (Error): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+            }
+          }
+        } else if (period === 'currentmonth') {
+          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          periodLabel = `Viewing: Current Month: ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
+        } else if (period === 'lastmonth') {
+          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+          endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+          periodLabel = `Viewing: Last Month: ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
         }
 
         document.getElementById('progressPeriodDisplay').textContent = periodLabel;
         clearParticipationCache();
-        loadProgress();
+        loadProgress(startDate, endDate);
       }
 
       function clearCacheAndRefresh() {
