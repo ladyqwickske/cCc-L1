@@ -1,13 +1,4 @@
-    // Format a date as UTC (YYYY-MM-DD HH:mm UTC)
-    function formatDateUTC(date) {
-      if (!date) return '';
-      if (!(date instanceof Date)) date = new Date(date);
-      if (isNaN(date.getTime())) return '';
-      const yyyy = date.getUTCFullYear();
-      const mm = String(date.getUTCMonth() + 1).padStart(2, '0');
-      const dd = String(date.getUTCDate()).padStart(2, '0');
-        return `${yyyy}-${mm}-${dd} ${String(date.getUTCHours()).padStart(2, '0')}:${String(date.getUTCMinutes()).padStart(2, '0')} UTC`;
-    }
+    // ...existing code...
 <!DOCTYPE html>
 <html>
 <head>
