@@ -923,6 +923,7 @@ function filterPlayerTable() {
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              console.log('[Countdown] Calling updateCountdownTimer (Fallback) with:', end.toISOString());
               updateCountdownTimer(end.toISOString());
               loadDashboard();
               return;
@@ -944,6 +945,7 @@ function filterPlayerTable() {
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              console.log('[Countdown] Calling updateCountdownTimer (No Events) with:', end.toISOString());
               updateCountdownTimer(end.toISOString());
               loadDashboard();
               return;
@@ -1001,6 +1003,7 @@ function filterPlayerTable() {
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            console.log('[Countdown] Calling updateCountdownTimer (Active Period) with:', end.toISOString());
             updateCountdownTimer(end.toISOString());
             loadDashboard();
           })
@@ -1014,8 +1017,10 @@ function filterPlayerTable() {
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+            console.log('[Countdown] Calling updateCountdownTimer (Error) with:', end.toISOString());
             updateCountdownTimer(end.toISOString());
             loadDashboard();
+          console.log('[Countdown] dashboard.html script loaded and executed.');
           });
         return;
       }
