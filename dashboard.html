@@ -890,7 +890,7 @@ function filterPlayerTable() {
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              updateCountdownTimer(formatDate(end));
+              updateCountdownTimer(end.toISOString());
               loadDashboard();
               return;
             }
@@ -911,6 +911,7 @@ function filterPlayerTable() {
               startInput.value = formatDate(start);
               endInput.value = formatDate(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              updateCountdownTimer(end.toISOString());
               loadDashboard();
               return;
             }
@@ -967,7 +968,7 @@ function filterPlayerTable() {
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            updateCountdownTimer(formatDate(end));
+            updateCountdownTimer(end.toISOString());
             loadDashboard();
           })
           .catch(error => {
@@ -980,7 +981,7 @@ function filterPlayerTable() {
             startInput.value = formatDate(start);
             endInput.value = formatDate(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            updateCountdownTimer(formatDate(end));
+            updateCountdownTimer(end.toISOString());
             loadDashboard();
           });
         return;
@@ -1000,11 +1001,11 @@ function filterPlayerTable() {
               const start = new Date(today);
               start.setDate(start.getDate() - start.getDay() - 7);
               const end = new Date(start);
-              end.setDate(end.getDate() + 6);
+                // Format date as YYYY-MM-DD using UTC
               startInput.value = formatDate(start);
-              endInput.value = formatDate(end);
-              displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              loadDashboard();
+                  const year = date.getUTCFullYear();
+                  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+                  const day = String(date.getUTCDate()).padStart(2, '0');
               return;
             }
             
