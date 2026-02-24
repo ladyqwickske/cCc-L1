@@ -682,11 +682,10 @@ function updateCountdownTimer(endDateStr) {
     const countdownSubtitle = document.getElementById('countdownSubtitle');
     const countdownParts = document.getElementById('countdownParts');
     if (!countdownPanel || !countdownSubtitle || !countdownParts) return;
-    // Use current UTC time
+    // Use current UTC time (new Date() is always UTC for arithmetic)
     const now = new Date();
-    const nowUTC = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
-    const timeLeft = endDate - nowUTC;
-    console.log('[Countdown][DEBUG] now:', now.toISOString(), 'nowUTC:', nowUTC.toISOString(), 'endDate:', endDate.toISOString(), 'timeLeft(ms):', timeLeft);
+    const timeLeft = endDate - now;
+    console.log('[Countdown][DEBUG] now:', now.toISOString(), 'endDate:', endDate.toISOString(), 'timeLeft(ms):', timeLeft);
     if (timeLeft <= 0) {
       countdownPanel.style.display = 'block';
       countdownSubtitle.textContent = 'Event period has ended.';
