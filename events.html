@@ -354,7 +354,7 @@
       text-transform: uppercase; 
       letter-spacing: 0.5px;
       border-bottom: 2px solid #444;
-      text-align: left;
+      text-align: center;
       position: sticky;
       top: 0;
       background: #1a1b1c;
@@ -1033,8 +1033,8 @@
       }
 
       // --- Table Sorting State ---
-      let eventsSortColumn = null;
-      let eventsSortDirection = 'asc';
+      let eventsSortColumn = 'endDate';
+      let eventsSortDirection = 'desc';
 
       function renderEventsTable() {
         const tbody = document.getElementById('eventsTableBody');
