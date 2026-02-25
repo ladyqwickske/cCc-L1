@@ -625,6 +625,44 @@ function formatDateUTC(date) {
   if (!(date instanceof Date)) return '';
   return date.toISOString().replace('T', ' ').substring(0, 19) + ' UTC';
 }
+
+// Helper: Get UTC components (year, month, day) from a Date object
+function getUTCComponents(date) {
+  if (!(date instanceof Date)) return null;
+  return {
+    year: date.getUTCFullYear(),
+    month: date.getUTCMonth() + 1,
+    day: date.getUTCDate(),
+    hours: date.getUTCHours(),
+    minutes: date.getUTCMinutes(),
+    seconds: date.getUTCSeconds()
+  };
+}
+
+// Helper: Format date as YYYY-MM-DD using UTC timezone
+function formatDateAsUTC(date) {
+  const utc = getUTCComponents(date);
+  if (!utc) return '';
+  return `${utc.year}-${String(utc.month).padStart(2, '0')}-${String(utc.day).padStart(2, '0')}`;
+}
+
+// Helper: Create a Date object at start of day UTC (00:00:00 UTC)
+function getUTCStartOfDay(year, month, day) {
+  return new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
+}
+
+// Helper: Create a Date object at end of day UTC (23:59:59 UTC)
+function getUTCEndOfDay(year, month, day) {
+  return new Date(Date.UTC(year, month - 1, day, 23, 59, 59));
+}
+
+// Helper: Get current UTC date (midnight UTC)
+function getTodayUTC() {
+  const now = new Date();
+  const utc = getUTCComponents(now);
+  return getUTCStartOfDay(utc.year, utc.month, utc.day);
+}
+
 // Helper: Parse date string as UTC
 function parseDateUTC(str) {
   // Accepts ISO, 'YYYY-MM-DD', or 'YYYY-MM-DD HH:MM:SS'
@@ -830,19 +868,19 @@ function filterPlayerTable() {
     };
     
     function setDateRange(preset) {
-      const today = new Date();
+      const todayUTC = getTodayUTC();
       const startInput = document.getElementById('startDate');
       const endInput = document.getElementById('endDate');
       const displayElement = document.getElementById('dateRangeDisplay');
       
-      // Format date as YYYY-MM-DD using LOCAL timezone (not UTC)
-      const formatDate = (date) => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
+      // Format date as YYYY-MM-DD using UTC timezone
+      const formatDisplayDate = (date) => {
+        const utc = getUTCComponents(date);
+        if (!utc) return '';
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${monthNames[utc.month - 1]} ${utc.day}, ${utc.year}`;
       };
-      const formatDisplayDate = (date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      
       document.querySelectorAll('.preset-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelector(`[data-preset="${preset}"]`)?.classList.add('active');
       if (preset === 'lastday') {
@@ -857,16 +895,17 @@ function filterPlayerTable() {
           .then(result => {
             if (!result || !result.success) {
               console.error('Error loading events for active period');
-              // Fallback to Sunday-Saturday
-              const start = new Date(today);
-              start.setDate(start.getDate() - start.getDay());
+              // Fallback to Sunday-Saturday (UTC)
+              const start = new Date(todayUTC);
+              const dayOfWeekUTC = start.getUTCDay();
+              start.setUTCDate(start.getUTCDate() - dayOfWeekUTC);
               const end = new Date(start);
-              end.setDate(start.getDate() + 6);
-              startInput.value = formatDate(start);
-              endInput.value = formatDate(end);
+              end.setUTCDate(start.getUTCDate() + 6);
+              startInput.value = formatDateAsUTC(start);
+              endInput.value = formatDateAsUTC(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
               // Use end of day UTC for countdown
-              const endDateStr = `${formatDate(end)}T23:59:59Z`;
+              const endDateStr = formatDateAsUTC(end) + 'T23:59:59Z';
               console.log('[Countdown] Calling updateCountdownTimer (Fallback) with:', endDateStr);
               updateCountdownTimer(endDateStr);
               loadDashboard();
@@ -881,15 +920,16 @@ function filterPlayerTable() {
             
             if (periodEvents.length === 0) {
               console.warn('No Ruthless Slaughter events found, using fallback');
-              // Fallback to Sunday-Saturday
-              const start = new Date(today);
-              start.setDate(start.getDate() - start.getDay());
+              // Fallback to Sunday-Saturday (UTC)
+              const start = new Date(todayUTC);
+              const dayOfWeekUTC = start.getUTCDay();
+              start.setUTCDate(start.getUTCDate() - dayOfWeekUTC);
               const end = new Date(start);
-              end.setDate(end.getDate() + 6);
-              startInput.value = formatDate(start);
-              endInput.value = formatDate(end);
+              end.setUTCDate(end.getUTCDate() + 6);
+              startInput.value = formatDateAsUTC(start);
+              endInput.value = formatDateAsUTC(end);
               displayElement.textContent = `Viewing: Active Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-              const endDateStr = `${formatDate(end)}T23:59:59Z`;
+              const endDateStr = formatDateAsUTC(end) + 'T23:59:59Z';
               console.log('[Countdown] Calling updateCountdownTimer (No Events) with:', endDateStr);
               updateCountdownTimer(endDateStr);
               loadDashboard();
@@ -900,7 +940,7 @@ function filterPlayerTable() {
             periodEvents.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
             
             // Find the current active period
-            const todayStr = formatDate(today);
+            const todayStr = formatDateAsUTC(todayUTC);
             let activePeriod = null;
             
             // Look for the event that is currently active (today is between start and end)
@@ -927,12 +967,12 @@ function filterPlayerTable() {
               
               // If we're between two events, use the end of the last and start of the next
               if (lastPastEvent && nextFutureEvent) {
-                const start = new Date(lastPastEvent.endDate);
-                start.setDate(start.getDate() + 1); // Day after last period ended
-                const end = new Date(nextFutureEvent.startDate);
-                end.setDate(end.getDate() - 1); // Day before next period starts
-                startInput.value = formatDate(start);
-                endInput.value = formatDate(end);
+                const start = parseDateUTC(lastPastEvent.endDate);
+                start.setUTCDate(start.getUTCDate() + 1); // Day after last period ended
+                const end = parseDateUTC(nextFutureEvent.startDate);
+                end.setUTCDate(end.getUTCDate() - 1); // Day before next period starts
+                startInput.value = formatDateAsUTC(start);
+                endInput.value = formatDateAsUTC(end);
                 displayElement.textContent = `Viewing: Active Period (Between Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
                 loadDashboard();
                 return;
@@ -943,31 +983,31 @@ function filterPlayerTable() {
             }
             
             // Use the active period dates
-            const start = new Date(activePeriod.startDate);
-            const end = new Date(activePeriod.endDate);
-            startInput.value = formatDate(start);
-            endInput.value = formatDate(end);
+            const start = parseDateUTC(activePeriod.startDate);
+            const end = parseDateUTC(activePeriod.endDate);
+            startInput.value = formatDateAsUTC(start);
+            endInput.value = formatDateAsUTC(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            const endDateStr = `${formatDate(end)}T23:59:59Z`;
+            const endDateStr = formatDateAsUTC(end) + 'T23:59:59Z';
             console.log('[Countdown] Calling updateCountdownTimer (Active Period) with:', endDateStr);
             updateCountdownTimer(endDateStr);
             loadDashboard();
           })
           .catch(error => {
             console.error('Error fetching events:', error);
-            // Fallback to Sunday-Saturday
-            const start = new Date(today);
-            start.setDate(start.getDate() - start.getDay());
+            // Fallback to Sunday-Saturday (UTC)
+            const start = new Date(todayUTC);
+            const dayOfWeekUTC = start.getUTCDay();
+            start.setUTCDate(start.getUTCDate() - dayOfWeekUTC);
             const end = new Date(start);
-            end.setDate(end.getDate() + 6);
-            startInput.value = formatDate(start);
-            endInput.value = formatDate(end);
+            end.setUTCDate(end.getUTCDate() + 6);
+            startInput.value = formatDateAsUTC(start);
+            endInput.value = formatDateAsUTC(end);
             displayElement.textContent = `Viewing: Active Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
-            const endDateStr = `${formatDate(end)}T23:59:59Z`;
+            const endDateStr = formatDateAsUTC(end) + 'T23:59:59Z';
             console.log('[Countdown] Calling updateCountdownTimer (Error) with:', endDateStr);
             updateCountdownTimer(endDateStr);
             loadDashboard();
-          console.log('[Countdown] dashboard.html script loaded and executed.');
           });
         return;
       }
@@ -982,15 +1022,16 @@ function filterPlayerTable() {
           .then(res => res.json())
           .then(result => {
             if (!result || !result.success || !result.events || result.events.length === 0) {
-              // Fallback to previous Sunday-Saturday
-              const start = new Date(today);
-              start.setDate(start.getDate() - start.getDay() - 7);
+              // Fallback to previous Sunday-Saturday (UTC)
+              const start = new Date(todayUTC);
+              const dayOfWeekUTC = start.getUTCDay();
+              start.setUTCDate(start.getUTCDate() - dayOfWeekUTC - 7);
               const end = new Date(start);
-                // Format date as YYYY-MM-DD using UTC
-              startInput.value = formatDate(start);
-                  const year = date.getUTCFullYear();
-                  const month = String(date.getUTCMonth() + 1).padStart(2, '0');
-                  const day = String(date.getUTCDate()).padStart(2, '0');
+              end.setUTCDate(end.getUTCDate() + 6);
+              startInput.value = formatDateAsUTC(start);
+              endInput.value = formatDateAsUTC(end);
+              displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
+              loadDashboard();
               return;
             }
             
@@ -1001,13 +1042,14 @@ function filterPlayerTable() {
             );
             
             if (periodEvents.length === 0) {
-              // Fallback to previous Sunday-Saturday
-              const start = new Date(today);
-              start.setDate(start.getDate() - start.getDay() - 7);
+              // Fallback to previous Sunday-Saturday (UTC)
+              const start = new Date(todayUTC);
+              const dayOfWeekUTC = start.getUTCDay();
+              start.setUTCDate(start.getUTCDate() - dayOfWeekUTC - 7);
               const end = new Date(start);
-              end.setDate(end.getDate() + 6);
-              startInput.value = formatDate(start);
-              endInput.value = formatDate(end);
+              end.setUTCDate(end.getUTCDate() + 6);
+              startInput.value = formatDateAsUTC(start);
+              endInput.value = formatDateAsUTC(end);
               displayElement.textContent = `Viewing: Previous Period (No Events): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
               loadDashboard();
               return;
@@ -1016,7 +1058,7 @@ function filterPlayerTable() {
             // Sort events by start date
             periodEvents.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
             
-            const todayStr = formatDate(today);
+            const todayStr = formatDateAsUTC(todayUTC);
             
             // Find the current active period first
             let activePeriod = null;
@@ -1051,55 +1093,61 @@ function filterPlayerTable() {
             }
             
             if (!previousPeriod) {
-              // Fallback to previous Sunday-Saturday
-              const start = new Date(today);
-              start.setDate(start.getDate() - start.getDay() - 7);
+              // Fallback to previous Sunday-Saturday (UTC)
+              const start = new Date(todayUTC);
+              const dayOfWeekUTC = start.getUTCDay();
+              start.setUTCDate(start.getUTCDate() - dayOfWeekUTC - 7);
               const end = new Date(start);
-              end.setDate(end.getDate() + 6);
-              startInput.value = formatDate(start);
-              endInput.value = formatDate(end);
+              end.setUTCDate(end.getUTCDate() + 6);
+              startInput.value = formatDateAsUTC(start);
+              endInput.value = formatDateAsUTC(end);
               displayElement.textContent = `Viewing: Previous Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
               loadDashboard();
               return;
             }
             
             // Use the previous period dates
-            const start = new Date(previousPeriod.startDate);
-            const end = new Date(previousPeriod.endDate);
-            startInput.value = formatDate(start);
-            endInput.value = formatDate(end);
+            const start = parseDateUTC(previousPeriod.startDate);
+            const end = parseDateUTC(previousPeriod.endDate);
+            startInput.value = formatDateAsUTC(start);
+            endInput.value = formatDateAsUTC(end);
             displayElement.textContent = `Viewing: Previous Period (${previousPeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
             loadDashboard();
           })
           .catch(error => {
             console.error('Error fetching events:', error);
-            // Fallback to previous Sunday-Saturday
-            const start = new Date(today);
-            start.setDate(start.getDate() - start.getDay() - 7);
+            // Fallback to previous Sunday-Saturday (UTC)
+            const start = new Date(todayUTC);
+            const dayOfWeekUTC = start.getUTCDay();
+            start.setUTCDate(start.getUTCDate() - dayOfWeekUTC - 7);
             const end = new Date(start);
-            end.setDate(end.getDate() + 6);
-            startInput.value = formatDate(start);
-            endInput.value = formatDate(end);
+            end.setUTCDate(end.getUTCDate() + 6);
+            startInput.value = formatDateAsUTC(start);
+            endInput.value = formatDateAsUTC(end);
             displayElement.textContent = `Viewing: Previous Period (Error): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
             loadDashboard();
           });
         return;
       }
       if (preset === 'currentmonth') {
-        const start = new Date(today.getFullYear(), today.getMonth(), 1);
-        // Get the last day of current month
-        const end = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        startInput.value = formatDate(start);
-        endInput.value = formatDate(end);
+        const start = getUTCStartOfDay(todayUTC.getUTCFullYear(), todayUTC.getUTCMonth() + 1, 1);
+        const endUTC = getUTCComponents(todayUTC);
+        const end = getUTCEndOfDay(endUTC.year, endUTC.month + 1, 0);
+        startInput.value = formatDateAsUTC(start);
+        endInput.value = formatDateAsUTC(end);
         displayElement.textContent = `Viewing: Current Month: ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
         loadDashboard();
         return;
       }
       if (preset === 'lastmonth') {
-        const start = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-        const end = new Date(today.getFullYear(), today.getMonth(), 0);
-        startInput.value = formatDate(start);
-        endInput.value = formatDate(end);
+        const prevMonth = todayUTC.getUTCMonth();
+        const prevYear = prevMonth === 0 ? todayUTC.getUTCFullYear() - 1 : todayUTC.getUTCFullYear();
+        const month = prevMonth === 0 ? 12 : prevMonth;
+        const start = getUTCStartOfDay(prevYear, month, 1);
+        const endUtc = getUTCComponents(start);
+        const end = getUTCEndOfDay(endUtc.year, endUtc.month + 1, 0);
+        startInput.value = formatDateAsUTC(start);
+        endInput.value = formatDateAsUTC(end);
         displayElement.textContent = `Viewing: Last Month: ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
         loadDashboard();
         return;
