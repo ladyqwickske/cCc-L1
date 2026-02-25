@@ -8,7 +8,37 @@
   <link rel="icon" href="favicon.png" type="image/png">
   <script src="config.js"></script>
   <script src="portal-shim.js"></script>
-  <style>
+  <script>
+  // Helper: Parse date string as UTC with proper timezone handling
+  function parseDateUTC(str) {
+    if (!str) return null;
+    if (str instanceof Date) return str;
+    const strTrim = String(str).trim();
+    if (!strTrim) return null;
+    // ISO 8601 with Z or offset
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(strTrim)) {
+      const d = new Date(strTrim);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // YYYY-MM-DD (treat as UTC start of day)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(strTrim)) {
+      const d = new Date(strTrim + 'T00:00:00Z');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Fallback: try direct parsing with Z suffix for UTC
+    const d = new Date(strTrim + 'Z');
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Helper: Get today's date at midnight UTC (YYYY-MM-DD format)
+  function getTodayUTCString() {
+    const now = new Date();
+    const year = now.getUTCFullYear();
+    const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(now.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  </script>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
@@ -738,10 +768,10 @@
           let aVal, bVal;
           switch (column) {
             case 'name': aVal = a.name.toLowerCase(); bVal = b.name.toLowerCase(); break;
-            case 'joinDate': aVal = new Date(a.joinDate); bVal = new Date(b.joinDate); break;
+            case 'joinDate': aVal = parseDateUTC(a.joinDate); bVal = parseDateUTC(b.joinDate); break;
             case 'startMight': aVal = a.startMight || 0; bVal = b.startMight || 0; break;
             case 'latestMight': aVal = a.latestMight || 0; bVal = b.latestMight || 0; break;
-            case 'latestMightDate': aVal = a.latestMightDate ? new Date(a.latestMightDate) : new Date(0); bVal = b.latestMightDate ? new Date(b.latestMightDate) : new Date(0); break;
+            case 'latestMightDate': aVal = parseDateUTC(a.latestMightDate) || new Date(0); bVal = parseDateUTC(b.latestMightDate) || new Date(0); break;
             case 'growth': aVal = (a.startMight && a.latestMight && a.startMight > 0) ? ((a.latestMight - a.startMight) / a.startMight) * 100 : -Infinity; bVal = (b.startMight && b.latestMight && b.startMight > 0) ? ((b.latestMight - b.startMight) / b.startMight) * 100 : -Infinity; break;
             case 'recentGrowth': aVal = a.recentGrowthPercent || 0; bVal = b.recentGrowthPercent || 0; break;
             default: aVal = 0; bVal = 0;
@@ -790,7 +820,7 @@
       }
 
       function setTodayDefault() {
-        const today = new Date().toISOString().split('T')[0];
+        const today = getTodayUTCString();
         ['mightDate', 'joinDate', 'endDate'].forEach(id => {
           const el = document.getElementById(id);
           if (el) el.value = today;
@@ -947,8 +977,8 @@
       function formatDate(dateStr) {
         if (!dateStr) return '-';
         try {
-          const date = new Date(dateStr);
-          if (isNaN(date.getTime())) return dateStr;
+          const date = parseDateUTC(dateStr);
+          if (!date) return dateStr;
           // Format as UTC date string
           const year = date.getUTCFullYear();
           const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });

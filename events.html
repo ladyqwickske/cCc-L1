@@ -9,11 +9,41 @@
   <script src="config.js"></script>
   <script src="portal-shim.js"></script>
   <script>
+  // Helper: Parse date string as UTC with proper timezone handling
+  function parseDateUTC(str) {
+    if (!str) return null;
+    if (str instanceof Date) return str;
+    const strTrim = String(str).trim();
+    if (!strTrim) return null;
+    // ISO 8601 with Z or offset
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(strTrim)) {
+      const d = new Date(strTrim);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // YYYY-MM-DD (treat as UTC start of day)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(strTrim)) {
+      const d = new Date(strTrim + 'T00:00:00Z');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // M/D/YYYY or MM/DD/YYYY (treat as UTC)
+    const mdy = strTrim.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mdy) {
+      const month = parseInt(mdy[1], 10) - 1;
+      const day = parseInt(mdy[2], 10);
+      const year = parseInt(mdy[3], 10);
+      const d = new Date(Date.UTC(year, month, day, 0, 0, 0));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Fallback: try direct parsing with Z suffix for UTC
+    const d = new Date(strTrim + 'Z');
+    return isNaN(d.getTime()) ? null : d;
+  }
+
   // Format a date string as UTC (YYYY-MM-DD HH:mm:ss UTC)
   function formatDateUTC(dateStr, isEndDate = false) {
     if (!dateStr) return '';
-    const d = new Date(dateStr);
-    if (isNaN(d.getTime())) return dateStr;
+    const d = parseDateUTC(dateStr);
+    if (!d) return dateStr;
     const yyyy = d.getUTCFullYear();
     const mm = String(d.getUTCMonth() + 1).padStart(2, '0');
     const dd = String(d.getUTCDate()).padStart(2, '0');
@@ -967,24 +997,8 @@
       }
 
       function parseDateSafe(value) {
-        if (!value) return null;
-        if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
-        const str = String(value).trim();
-        if (!str) return null;
-        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-          const date = new Date(str + 'T00:00:00');
-          return isNaN(date.getTime()) ? null : date;
-        }
-        const mdy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (mdy) {
-          const month = parseInt(mdy[1], 10) - 1;
-          const day = parseInt(mdy[2], 10);
-          const year = parseInt(mdy[3], 10);
-          const date = new Date(year, month, day);
-          return isNaN(date.getTime()) ? null : date;
-        }
-        const parsed = new Date(str);
-        return isNaN(parsed.getTime()) ? null : parsed;
+        // Use the UTC-aware parseDateUTC function defined at the top
+        return parseDateUTC(value);
       }
 
       function buildMemberJoinDatesMap() {

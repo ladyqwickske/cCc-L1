@@ -1,3 +1,4 @@
+    // ...existing code...
 <!DOCTYPE html>
 <html>
 <head>
@@ -8,7 +9,53 @@
   <link rel="icon" href="favicon.png" type="image/png">
   <script src="config.js"></script>
   <script src="portal-shim.js"></script>
-  <style>
+  <script>
+  // Helper: Parse date string as UTC with proper timezone handling
+  function parseDateUTC(str) {
+    if (!str) return null;
+    if (str instanceof Date) return str;
+    const strTrim = String(str).trim();
+    if (!strTrim) return null;
+    // ISO 8601 with Z or offset
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(strTrim)) {
+      const d = new Date(strTrim);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // YYYY-MM-DD (treat as UTC start of day)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(strTrim)) {
+      const d = new Date(strTrim + 'T00:00:00Z');
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // M/D/YYYY or MM/DD/YYYY (treat as UTC)
+    const mdy = strTrim.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mdy) {
+      const month = parseInt(mdy[1], 10) - 1;
+      const day = parseInt(mdy[2], 10);
+      const year = parseInt(mdy[3], 10);
+      const d = new Date(Date.UTC(year, month, day, 0, 0, 0));
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Fallback: try direct parsing with Z suffix for UTC
+    const d = new Date(strTrim + 'Z');
+    return isNaN(d.getTime()) ? null : d;
+  }
+
+  // Helper: Get today's date at midnight UTC
+  function getTodayUTC() {
+    const now = new Date();
+    return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+  }
+
+  // Helper: Format date as YYYY-MM-DD using UTC
+  function formatDateAsUTC(date) {
+    if (!date) return '';
+    if (!(date instanceof Date)) return '';
+    const year = date.getUTCFullYear();
+    const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(date.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+  </script>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
@@ -666,24 +713,8 @@
       }
 
       function parseDateSafe(value) {
-        if (!value) return null;
-        if (value instanceof Date) return isNaN(value.getTime()) ? null : value;
-        const str = String(value).trim();
-        if (!str) return null;
-        if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-          const date = new Date(str + 'T00:00:00');
-          return isNaN(date.getTime()) ? null : date;
-        }
-        const mdy = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-        if (mdy) {
-          const month = parseInt(mdy[1], 10) - 1;
-          const day = parseInt(mdy[2], 10);
-          const year = parseInt(mdy[3], 10);
-          const date = new Date(year, month, day);
-          return isNaN(date.getTime()) ? null : date;
-        }
-        const parsed = new Date(str);
-        return isNaN(parsed.getTime()) ? null : parsed;
+        // Use the UTC-aware parseDateUTC function defined at the top
+        return parseDateUTC(value);
       }
 
       function ensureTroopSummaryLoaded() {
@@ -761,8 +792,7 @@
         });
 
         // Always use UTC for today
-        const now = new Date();
-        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+        const today = getTodayUTC();
         const formatDisplayDate = (date) => {
           if (!date) return '';
           return `${date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} (UTC)`;
@@ -790,7 +820,7 @@
             const result = await res.json();
             const allEvents = result.events || [];
             const periodEvents = allEvents.filter(e => e.eventType === 'Ruthless Slaughter' || e.participationMethod === 'period-marker');
-            periodEvents.sort((a, b) => new Date(a.startDate) - new Date(b.startDate));
+            periodEvents.sort((a, b) => parseDateUTC(a.startDate) - parseDateUTC(b.startDate));
             const todayStr = formatDate(today);
             let activePeriod = null;
             for (let i = 0; i < periodEvents.length; i++) {
@@ -819,42 +849,42 @@
               }
             }
             if (period === 'active' && activePeriod) {
-              startDate = new Date(activePeriod.startDate);
-              endDate = new Date(activePeriod.endDate);
+              startDate = parseDateUTC(activePeriod.startDate);
+              endDate = parseDateUTC(activePeriod.endDate);
               periodLabel = `Viewing: Active Period (${activePeriod.eventName || ''}): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
             } else if (period === 'prev' && previousPeriod) {
-              startDate = new Date(previousPeriod.startDate);
-              endDate = new Date(previousPeriod.endDate);
+              startDate = parseDateUTC(previousPeriod.startDate);
+              endDate = parseDateUTC(previousPeriod.endDate);
               periodLabel = `Viewing: Previous Period (${previousPeriod.eventName || ''}): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
             } else {
-              // Fallback to calendar week
+              // Fallback to calendar week (using UTC)
               if (period === 'active') {
                 startDate = new Date(today);
-                startDate.setDate(startDate.getDate() - startDate.getDay());
+                startDate.setUTCDate(startDate.getUTCDate() - startDate.getUTCDay());
                 endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + 6);
+                endDate.setUTCDate(endDate.getUTCDate() + 6);
                 periodLabel = `Viewing: Active Period (Fallback): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
               } else {
                 startDate = new Date(today);
-                startDate.setDate(startDate.getDate() - startDate.getDay() - 7);
+                startDate.setUTCDate(startDate.getUTCDate() - startDate.getUTCDay() - 7);
                 endDate = new Date(startDate);
-                endDate.setDate(endDate.getDate() + 6);
+                endDate.setUTCDate(endDate.getUTCDate() + 6);
                 periodLabel = `Viewing: Previous Period (Fallback): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
               }
             }
           } catch (e) {
-            // Fallback to calendar week
+            // Fallback to calendar week (using UTC)
             if (period === 'active') {
               startDate = new Date(today);
-              startDate.setDate(startDate.getDate() - startDate.getDay());
+              startDate.setUTCDate(startDate.getUTCDate() - startDate.getUTCDay());
               endDate = new Date(startDate);
-              endDate.setDate(endDate.getDate() + 6);
+              endDate.setUTCDate(endDate.getUTCDate() + 6);
               periodLabel = `Viewing: Active Period (Error): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
             } else {
               startDate = new Date(today);
-              startDate.setDate(startDate.getDate() - startDate.getDay() - 7);
+              startDate.setUTCDate(startDate.getUTCDate() - startDate.getUTCDay() - 7);
               endDate = new Date(startDate);
-              endDate.setDate(endDate.getDate() + 6);
+              endDate.setUTCDate(endDate.getUTCDate() + 6);
               periodLabel = `Viewing: Previous Period (Error): ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
             }
           }
