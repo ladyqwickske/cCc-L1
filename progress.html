@@ -1,4 +1,3 @@
-    // ...existing code...
 <!DOCTYPE html>
 <html>
 <head>
@@ -56,6 +55,7 @@
     return `${year}-${month}-${day}`;
   }
   </script>
+  <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
@@ -697,6 +697,8 @@
       let eventTypesData = [];
       let troopSummaryMap = {};
       let troopTargetsCache = {};
+      let currentPeriodStart = null;  // Store period start date for event filtering
+      let currentPeriodEnd = null;    // Store period end date for event filtering
       const PARTICIPATION_CACHE_KEY = 'ccc_participation_cache';
       const PARTICIPATION_TIMESTAMP_KEY = 'ccc_participation_timestamp';
 
@@ -765,8 +767,13 @@
         }
       }
 
-      function loadProgress() {
+      function loadProgress(startDate, endDate) {
         showLoading();
+        // Store the period dates if provided, for use in event filtering
+        if (startDate && endDate) {
+          currentPeriodStart = new Date(startDate);  // Make a copy
+          currentPeriodEnd = new Date(endDate);      // Make a copy
+        }
         fetch(window.GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -889,12 +896,22 @@
             }
           }
         } else if (period === 'currentmonth') {
-          startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-          endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+          // Create month dates using UTC
+          const year = today.getUTCFullYear();
+          const month = today.getUTCMonth() + 1;
+          startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+          endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59));
           periodLabel = `Viewing: Current Month: ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
         } else if (period === 'lastmonth') {
-          startDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
-          endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+          // Create month dates using UTC
+          let year = today.getUTCFullYear();
+          let month = today.getUTCMonth(); // 0-11
+          if (month === 0) {
+            month = 12;
+            year = year - 1;
+          }
+          startDate = new Date(Date.UTC(year, month - 1, 1, 0, 0, 0));
+          endDate = new Date(Date.UTC(year, month, 0, 23, 59, 59));
           periodLabel = `Viewing: Last Month: ${formatDisplayDate(startDate)} – ${formatDisplayDate(endDate)}`;
         }
 
@@ -984,25 +1001,19 @@
       }
 
       function loadParticipationAndRender(events, members) {
-        // Only show events fully within the selected period
-        let periodStart = null;
-        let periodEnd = null;
-        // Try to extract from the current period label
-        const label = document.getElementById('progressPeriodDisplay')?.textContent || '';
-        const match = label.match(/(\w+ \d{1,2}, \d{4})\s*–\s*(\w+ \d{1,2}, \d{4})/);
-        if (match) {
-          periodStart = new Date(match[1]);
-          periodEnd = new Date(match[2]);
-        }
+        // Only show events fully within the selected period (using stored dates from setPeriod)
         // Filter out period-marker events and those not fully within the period
         currentEvents = (events || []).filter(event => {
           if (event.participationMethod === 'period-marker') return false;
-          if (periodStart && periodEnd && event.startDate && event.endDate) {
-            const evStart = new Date(event.startDate);
-            const evEnd = new Date(event.endDate);
+          // If we have stored period dates, use them with UTC-aware comparison
+          if (currentPeriodStart && currentPeriodEnd && event.startDate && event.endDate) {
+            const evStart = parseDateUTC(event.startDate);
+            const evEnd = parseDateUTC(event.endDate);
             // Only include events fully within the period
-            return evStart >= periodStart && evEnd <= periodEnd;
+            // Use time comparison: event start must be >= period start and end must be <= period end
+            return evStart >= currentPeriodStart && evEnd <= currentPeriodEnd;
           }
+          // If no period dates available, include all non-marker events
           return true;
         });
         currentEvents.sort((a, b) => {
@@ -1094,11 +1105,11 @@
             const key = `${normalizeName(member.name)}__${event.name}`;
             const participation = currentParticipationMap[key];
 
-            // Always parse and compare dates in UTC
-            const eventStart = event.startDate ? new Date(event.startDate + 'T00:00:00Z') : null;
-            const eventEnd = event.endDate ? new Date(event.endDate + 'T23:59:59Z') : null;
-            const memberJoinDate = member.joinDate ? new Date(member.joinDate + 'T00:00:00Z') : null;
-            const today = new Date(Date.UTC((new Date()).getUTCFullYear(), (new Date()).getUTCMonth(), (new Date()).getUTCDate()));
+            // Always parse and compare dates in UTC using the centralized UTC-aware parser
+            const eventStart = parseDateUTC(event.startDate);
+            const eventEnd = parseDateUTC(event.endDate);
+            const memberJoinDate = parseDateUTC(member.joinDate);
+            const today = getTodayUTC();
             const hasNotStarted = eventStart && eventStart > today;
             const memberJoinedAfterEvent = memberJoinDate && eventEnd && memberJoinDate > eventEnd;
 
