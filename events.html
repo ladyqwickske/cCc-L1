@@ -275,13 +275,22 @@
 
     /* Checkboxes */
     .checkbox-item { 
-      display: flex; 
-      align-items: center; 
-      gap: 8px; 
-      padding: 8px; 
-      margin: 4px 0;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
+      margin: 4px;
       border-radius: 4px;
       cursor: pointer;
+      min-width: 180px;
+      box-sizing: border-box;
+      vertical-align: top;
+    }
+    #chestTypesList {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: flex-start;
+      gap: 0;
     }
     .checkbox-item:hover { background: #2a2b2c; }
     .checkbox-item input[type="checkbox"] { cursor: pointer; }
