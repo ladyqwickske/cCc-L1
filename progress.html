@@ -826,7 +826,7 @@
             });
             const result = await res.json();
             const allEvents = result.events || [];
-            const periodEvents = allEvents.filter(e => e.eventType === 'Ruthless Slaughter' || e.participationMethod === 'period-marker');
+            const periodEvents = allEvents.filter(e => e.participationMethod === 'period-marker');
             periodEvents.sort((a, b) => parseDateUTC(a.startDate) - parseDateUTC(b.startDate));
             const todayStr = formatDate(today);
             let activePeriod = null;
@@ -1001,17 +1001,14 @@
       }
 
       function loadParticipationAndRender(events, members) {
-        // Only show events fully within the selected period (using stored dates from setPeriod)
-        // Filter out period-marker events and those not fully within the period
+        // Include all events that overlap with the selected period (not period-marker)
         currentEvents = (events || []).filter(event => {
           if (event.participationMethod === 'period-marker') return false;
-          // If we have stored period dates, use them with UTC-aware comparison
           if (currentPeriodStart && currentPeriodEnd && event.startDate && event.endDate) {
             const evStart = parseDateUTC(event.startDate);
             const evEnd = parseDateUTC(event.endDate);
-            // Only include events fully within the period
-            // Use time comparison: event start must be >= period start and end must be <= period end
-            return evStart >= currentPeriodStart && evEnd <= currentPeriodEnd;
+            // Include if event overlaps with the period
+            return evEnd >= currentPeriodStart && evStart <= currentPeriodEnd;
           }
           // If no period dates available, include all non-marker events
           return true;
