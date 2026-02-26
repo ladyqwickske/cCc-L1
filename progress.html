@@ -927,6 +927,14 @@
       }
 
       function onProgressLoaded(result) {
+        // Debug logging: show what is received from backend
+        console.log('[PROGRESS DEBUG] Raw backend result:', result);
+        if (result && result.events) {
+          console.log('[PROGRESS DEBUG] Events received:', result.events);
+        }
+        if (result && result.members) {
+          console.log('[PROGRESS DEBUG] Members received:', result.members);
+        }
         if (!result || !result.success) {
           onError(result?.error || 'Failed to load progress data');
           return;
