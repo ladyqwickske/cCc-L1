@@ -931,6 +931,22 @@
         console.log('[PROGRESS DEBUG] Raw backend result:', result);
         if (result && result.events) {
           console.log('[PROGRESS DEBUG] Events received:', result.events);
+          if (Array.isArray(result.events)) {
+            result.events.forEach((event, idx) => {
+              console.log(`[PROGRESS DEBUG] Event #${idx+1}:`, event);
+              console.log(`[PROGRESS DEBUG]  Name: ${event.name}`);
+              console.log(`[PROGRESS DEBUG]  Type: ${event.eventType}`);
+              console.log(`[PROGRESS DEBUG]  Start: ${event.startDate}`);
+              console.log(`[PROGRESS DEBUG]  End: ${event.endDate}`);
+              console.log(`[PROGRESS DEBUG]  Participation Method: ${event.participationMethod}`);
+              console.log(`[PROGRESS DEBUG]  Participation Count: ${event.participationCount}`);
+              console.log(`[PROGRESS DEBUG]  Total Points: ${event.totalPoints}`);
+              console.log(`[PROGRESS DEBUG]  Threshold: ${event.participationThreshold}`);
+              if (event.participationDetails) {
+                console.log(`[PROGRESS DEBUG]  Participation Details:`, event.participationDetails);
+              }
+            });
+          }
         }
         if (result && result.members) {
           console.log('[PROGRESS DEBUG] Members received:', result.members);
