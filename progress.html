@@ -948,6 +948,12 @@
             });
           }
         }
+        if (result && result.eventsDebug) {
+          console.log('[PROGRESS DEBUG] Backend event inclusion/exclusion info:');
+          result.eventsDebug.forEach((dbg, idx) => {
+            console.log(`[PROGRESS DEBUG] Event #${idx+1}:`, dbg);
+          });
+        }
         if (result && result.members) {
           console.log('[PROGRESS DEBUG] Members received:', result.members);
         }
