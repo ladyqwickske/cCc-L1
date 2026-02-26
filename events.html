@@ -1419,19 +1419,37 @@
       let troopSortDirection = 'asc';
 
       // --- Helper: Add sort handlers to a table ---
-      function addSortHandlers(tableId, onSort, sortColumn, sortDirection) {
+      function addSortHandlers(tableId, tableType) {
         const ths = document.querySelectorAll(`#${tableId} th.sortable`);
         ths.forEach(th => {
           th.style.cursor = 'pointer';
           th.onclick = function() {
             const col = th.getAttribute('data-sort');
-            if (sortColumn.value === col) {
-              sortDirection.value = sortDirection.value === 'asc' ? 'desc' : 'asc';
-            } else {
-              sortColumn.value = col;
-              sortDirection.value = 'asc';
+            if (tableType === 'chest') {
+              if (chestSortColumn === col) {
+                chestSortDirection = chestSortDirection === 'asc' ? 'desc' : 'asc';
+              } else {
+                chestSortColumn = col;
+                chestSortDirection = 'asc';
+              }
+              renderChestParticipationData();
+            } else if (tableType === 'manual') {
+              if (manualSortColumn === col) {
+                manualSortDirection = manualSortDirection === 'asc' ? 'desc' : 'asc';
+              } else {
+                manualSortColumn = col;
+                manualSortDirection = 'asc';
+              }
+              renderManualParticipationData();
+            } else if (tableType === 'troop') {
+              if (troopSortColumn === col) {
+                troopSortDirection = troopSortDirection === 'asc' ? 'desc' : 'asc';
+              } else {
+                troopSortColumn = col;
+                troopSortDirection = 'asc';
+              }
+              renderTroopParticipationData();
             }
-            onSort();
           };
         });
       }
@@ -1476,7 +1494,7 @@
           if (col === chestSortColumn) th.innerHTML += chestSortDirection === 'asc' ? ' ▲' : ' ▼';
         });
         // Add handlers
-        addSortHandlers('chestParticipationTableHead', renderChestParticipationData, {value: chestSortColumn}, {value: chestSortDirection});
+        addSortHandlers('chestParticipationTableHead', 'chest');
       }
 
       // --- Manual Participation Table ---
@@ -1559,7 +1577,7 @@
           if (col === manualSortColumn) th.innerHTML += manualSortDirection === 'asc' ? ' ▲' : ' ▼';
         });
         // Add handlers
-        addSortHandlers('manualParticipationTableHead', renderManualParticipationData, {value: manualSortColumn}, {value: manualSortDirection});
+        addSortHandlers('manualParticipationTableHead', 'manual');
       }
 
       // --- Troop Participation Table ---
@@ -1642,7 +1660,7 @@
           if (col === troopSortColumn) th.innerHTML += troopSortDirection === 'asc' ? ' ▲' : ' ▼';
         });
         // Add handlers
-        addSortHandlers('troopParticipationTableHead', renderTroopParticipationData, {value: troopSortColumn}, {value: troopSortDirection});
+        addSortHandlers('troopParticipationTableHead', 'troop');
       }
 
       function sortTable(column) { currentSortColumn = column; renderChestParticipationData(); }
