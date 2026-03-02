@@ -20,6 +20,9 @@
       background-attachment: fixed;
     }
 
+    body { top: 0 !important; }
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+
     /* Top Tabs */
     .tab-nav {
       background: rgba(30, 34, 40, 0.95);
@@ -329,7 +332,54 @@
 </head>
 <body>
   <!-- Google Translate Widget -->
-  <div id="google_translate_element" style="position:fixed;top:8px;right:8px;z-index:99999;"></div>
+  <div id="google_translate_element" style="position:fixed;bottom:8px;right:8px;z-index:7000;"></div>
+  <button id="translateToggleBtn" type="button" aria-label="Toggle translation" style="position:fixed;bottom:8px;right:8px;z-index:7001;display:none;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #444;border-radius:8px;background:#232526;color:#ffb300;font-size:18px;cursor:pointer;">🌐</button>
+  <style>
+    @media (max-width: 800px) {
+      #google_translate_element {
+        display: none !important;
+      }
+      body.translate-open #google_translate_element {
+        display: block !important;
+        position: fixed;
+        bottom: 54px;
+        right: 8px;
+        left: 8px;
+        width: auto !important;
+        max-width: calc(100vw - 16px) !important;
+        background: #232526;
+        border: 1px solid #444;
+        border-radius: 8px;
+        padding: 6px;
+        pointer-events: auto;
+      }
+      body.translate-open #google_translate_element .goog-te-gadget,
+      body.translate-open #google_translate_element .goog-te-combo {
+        max-width: 100% !important;
+        width: 100% !important;
+      }
+      #translateToggleBtn { display: inline-flex !important; }
+    }
+    @media (min-width: 801px) {
+      #translateToggleBtn { display: none !important; }
+    }
+  </style>
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const translateToggleBtn = document.getElementById('translateToggleBtn');
+      const translateWidget = document.getElementById('google_translate_element');
+      if (!translateToggleBtn || !translateWidget) return;
+      translateToggleBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        document.body.classList.toggle('translate-open');
+      });
+      document.addEventListener('click', function (e) {
+        if (!document.body.classList.contains('translate-open')) return;
+        if (translateWidget.contains(e.target) || translateToggleBtn.contains(e.target)) return;
+        document.body.classList.remove('translate-open');
+      });
+    });
+  </script>
   <script type="text/javascript">
     function googleTranslateElementInit() {
       new google.translate.TranslateElement({pageLanguage: 'en', layout: google.translate.TranslateElement.InlineLayout.SIMPLE}, 'google_translate_element');
@@ -534,6 +584,9 @@
       if (isAuthed && authedEmail) {
         setReadOnlyMode(false);
         updateSignedInBadge(authedEmail);
+        document.getElementById('bankTabBtn').style.display = 'flex';
+      } else {
+        document.getElementById('bankTabBtn').style.display = 'none';
       }
     });
   </script>
@@ -571,9 +624,17 @@
           <img src="compensation.png" alt="Compensation" class="tab-icon desktop-only">
           <span class="tab-label mobile-only">Compensation</span>
         </a>
+        <a href="competition.html" class="tab-btn" title="Competition">
+          <img src="competition.png" alt="Competition" class="tab-icon desktop-only">
+          <span class="tab-label mobile-only">Competition</span>
+        </a>
         <a href="points.html" class="tab-btn" title="Points Reference">
           <img src="chest_points.png" alt="Points Reference" class="tab-icon desktop-only">
           <span class="tab-label mobile-only">Points Reference</span>
+        </a>
+        <a href="bank.html" class="tab-btn" id="bankTabBtn" title="Bank" style="display:none;">
+          <img src="bank.png" alt="Bank" class="tab-icon desktop-only">
+          <span class="tab-label mobile-only">Bank</span>
         </a>
       </div>
       <div id="readOnlyBadge" style="display: none; padding: 8px 12px; background: #fff3cd; border-radius: 4px; font-size: 12px; color: #856404;">🔒 Read-Only Mode</div>
@@ -690,14 +751,14 @@ function updateCountdownTimer(endDateStr) {
   let endDate;
   if (/^\d{4}-\d{2}-\d{2}$/.test(endDateStr)) {
     endDate = new Date(endDateStr + 'T23:59:59Z');
-    console.log('[Countdown][DEBUG] Parsed endDate from date only:', endDateStr, '->', endDate.toISOString());
+    //console.log('[Countdown][DEBUG] Parsed endDate from date only:', endDateStr, '->', endDate.toISOString());
   } else if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(endDateStr)) {
     endDate = new Date(endDateStr);
-    console.log('[Countdown][DEBUG] Parsed endDate from ISO string:', endDateStr, '->', endDate.toISOString());
+    //console.log('[Countdown][DEBUG] Parsed endDate from ISO string:', endDateStr, '->', endDate.toISOString());
   } else {
     // fallback: try to parse as UTC
     endDate = new Date(endDateStr + 'Z');
-    console.log('[Countdown][DEBUG] Fallback parse endDate:', endDateStr, '->', endDate.toISOString());
+    //console.log('[Countdown][DEBUG] Fallback parse endDate:', endDateStr, '->', endDate.toISOString());
   }
   if (!endDateStr || !(endDate instanceof Date) || isNaN(endDate.getTime())) {
     console.warn('[Countdown][DEBUG] Invalid endDate:', endDateStr, endDate);
@@ -723,7 +784,7 @@ function updateCountdownTimer(endDateStr) {
     // Use current UTC time (new Date() is always UTC for arithmetic)
     const now = new Date();
     const timeLeft = endDate - now;
-    console.log('[Countdown][DEBUG] now:', now.toISOString(), 'endDate:', endDate.toISOString(), 'timeLeft(ms):', timeLeft);
+    //console.log('[Countdown][DEBUG] now:', now.toISOString(), 'endDate:', endDate.toISOString(), 'timeLeft(ms):', timeLeft);
     if (timeLeft <= 0) {
       countdownPanel.style.display = 'block';
       countdownSubtitle.textContent = 'Event period has ended.';
@@ -731,7 +792,7 @@ function updateCountdownTimer(endDateStr) {
         '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Hours</span></div>' +
         '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Minutes</span></div>' +
         '<div class="countdown-part"><span class="countdown-value">00</span><span class="countdown-label">Seconds</span></div>';
-      console.log('[Countdown][DEBUG] Timer ended.');
+     // console.log('[Countdown][DEBUG] Timer ended.');
       return;
     }
     countdownPanel.style.display = 'block';
@@ -748,7 +809,7 @@ function updateCountdownTimer(endDateStr) {
       `<div class="countdown-part"><span class="countdown-value">${String(hours).padStart(2, '0')}</span><span class="countdown-label">Hours</span></div>` +
       `<div class="countdown-part"><span class="countdown-value">${String(minutes).padStart(2, '0')}</span><span class="countdown-label">Minutes</span></div>` +
       `<div class="countdown-part"><span class="countdown-value">${String(seconds).padStart(2, '0')}</span><span class="countdown-label">Seconds</span></div>`;
-    console.log('[Countdown][DEBUG] Timer running. Days:', days, 'Hours:', hours, 'Minutes:', minutes, 'Seconds:', seconds);
+    //console.log('[Countdown][DEBUG] Timer running. Days:', days, 'Hours:', hours, 'Minutes:', minutes, 'Seconds:', seconds);
   }
   updateDisplay();
   setInterval(updateDisplay, 1000);
@@ -900,13 +961,13 @@ function filterPlayerTable() {
               const dayOfWeekUTC = start.getUTCDay();
               start.setUTCDate(start.getUTCDate() - dayOfWeekUTC);
               const end = new Date(start);
-              end.setUTCDate(start.getUTCDate() + 6);
+              end.setUTCDate(end.getUTCDate() + 6);
               startInput.value = formatDateAsUTC(start);
               endInput.value = formatDateAsUTC(end);
               displayElement.textContent = `Viewing: Active Period (Fallback): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
               // Use end of day UTC for countdown
               const endDateStr = formatDateAsUTC(end) + 'T23:59:59Z';
-              console.log('[Countdown] Calling updateCountdownTimer (Fallback) with:', endDateStr);
+             // console.log('[Countdown] Calling updateCountdownTimer (Fallback) with:', endDateStr);
               updateCountdownTimer(endDateStr);
               loadDashboard();
               return;
@@ -989,7 +1050,7 @@ function filterPlayerTable() {
             endInput.value = formatDateAsUTC(end);
             displayElement.textContent = `Viewing: Active Period (${activePeriod.eventName}): ${formatDisplayDate(start)} – ${formatDisplayDate(end)}`;
             const endDateStr = formatDateAsUTC(end) + 'T23:59:59Z';
-            console.log('[Countdown] Calling updateCountdownTimer (Active Period) with:', endDateStr);
+       //     console.log('[Countdown] Calling updateCountdownTimer (Active Period) with:', endDateStr);
             updateCountdownTimer(endDateStr);
             loadDashboard();
           })
