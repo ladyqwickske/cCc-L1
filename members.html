@@ -161,7 +161,10 @@
     /* Forms */
     .form-group { margin-bottom: 16px; }
     .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 12px; }
-    label { display: block; font-size: 12px; font-weight: 600; color: #ffb300; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-grid > div { min-width: 0; overflow: hidden; }
+    .might-form-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .add-member-form-grid { grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    label { display: block; font-size: 12px; font-weight: 600; color: #ffb300; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     input, select, textarea { 
       width: 100%; 
       padding: 10px 12px; 
@@ -593,10 +596,14 @@
         setReadOnlyMode(false);
         updateSignedInBadge(email);
         setRestrictedTabsVisibility(true);
+        const bankTab = document.getElementById('bankTabBtn');
+        if (bankTab) bankTab.style.display = 'flex';
       } else {
         setReadOnlyMode(true);
         updateSignedInBadge(null);
         setRestrictedTabsVisibility(false);
+        const bankTab = document.getElementById('bankTabBtn');
+        if (bankTab) bankTab.style.display = 'none';
         let nav = document.querySelector('.tab-nav-container');
         if (nav && !document.getElementById('signInManageBtn')) {
           const btn = document.createElement('button');
@@ -679,12 +686,12 @@
       </div>
       <div id="mightTab" class="tab-content active">
         <h3 style="margin:0 0 12px 0;">Track Member Might</h3>
-        <div class="form-grid"><div><label for="mightMemberSelect">Member</label><select id="mightMemberSelect"></select></div><div><label for="mightValue">Might</label><input type="number" id="mightValue" placeholder="Enter current might" onkeypress="if(event.key==='Enter'){MembersTab.submitMightEntry();}"></div><div><label for="mightDate">Date</label><input type="date" id="mightDate"><div class="note">Defaults to today</div></div></div>
+        <div class="form-grid might-form-grid"><div><label for="mightMemberSelect">Member</label><select id="mightMemberSelect"></select></div><div><label for="mightValue">Might</label><input type="number" id="mightValue" placeholder="Enter current might" onkeypress="if(event.key==='Enter'){MembersTab.submitMightEntry();}"></div><div><label for="mightDate">Date</label><input type="date" id="mightDate"><div class="note">Defaults to today</div></div></div>
         <button class="btn" onclick="MembersTab.submitMightEntry()">💾 Save Might</button><div id="mightStatus" class="status"></div>
       </div>
       <div id="addMemberTab" class="tab-content">
         <h3 style="margin:0 0 12px 0;">Add New Member</h3>
-        <div class="form-grid">
+        <div class="form-grid add-member-form-grid">
           <div>
             <label for="newMemberNameInput">Member Name</label>
             <input type="text" id="newMemberNameInput" placeholder="Enter member name">
@@ -902,11 +909,14 @@
         if (!date) { status.textContent = 'Please choose a date.'; status.classList.add('err'); return; }
         const might = parseInt(mightRaw, 10);
         if (isNaN(might) || might <= 0) { status.textContent = 'Enter a valid might value (>0).'; status.classList.add('err'); return; }
+        // Find the member data to get previous might for recent growth calculation
+        const memberData = membersData.find(m => m.name === member);
+        const previousMight = memberData && memberData.latestMight ? memberData.latestMight : (memberData ? memberData.startMight : null);
         status.textContent = 'Saving...';
         fetch(window.GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'recordMemberMight', member, date, might })
+          body: JSON.stringify({ action: 'recordMemberMight', member, date, might, previousMight })
         })
           .then(res => res.json())
           .then(result => {
@@ -914,6 +924,7 @@
               status.textContent = `Saved ${member} at ${formatMight(might)} for ${formatDate(date)}.`;
               status.classList.add('ok');
               document.getElementById('mightValue').value = '';
+              document.getElementById('mightMemberSelect').focus();
               setTimeout(loadMembers, 500);
             } else {
               status.textContent = result?.message || 'Failed to save.';
