@@ -248,8 +248,51 @@
     tr:hover { background: #2a2b2c; }
     tr:hover td:first-child { background: #2a2b2c; }
     .member-name { font-weight: 500; }
+    .member-name.missed-all-goals { color: #ff9a92; font-weight: 700; }
     .might-value { text-align: right; }
     .date-value { text-align: center; }
+
+    .points-meta { margin: 10px 0; font-size: 12px; color: #b0b0b0; text-align: left; }
+    .points-cell { text-align: center; font-weight: 700; border-radius: 4px; padding: 6px 8px; }
+    .points-green { background: rgba(76, 175, 80, 0.22); color: #9be7a1; }
+    .points-orange { background: rgba(255, 152, 0, 0.22); color: #ffca7a; }
+    .points-red { background: rgba(244, 67, 54, 0.22); color: #ff9a92; }
+    .points-na { background: rgba(176, 176, 176, 0.12); color: #b0b0b0; }
+
+    /* Active Period History (Management) */
+    .history-section {
+      margin: 16px 0;
+      padding: 12px;
+      border: 1px solid #444;
+      border-radius: 8px;
+      background: #232526;
+      text-align: left;
+    }
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 10px;
+    }
+    .history-controls {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .history-status {
+      margin-bottom: 10px;
+      font-size: 12px;
+      color: #b0b0b0;
+    }
+    .history-subtitle {
+      margin: 10px 0 6px;
+      color: #ffb300;
+      font-size: 12px;
+      font-weight: 600;
+    }
 
     /* Status Messages */
     .status { padding: 12px 14px; border-radius: 6px; margin: 8px 0; font-size: 13px; }
@@ -677,12 +720,14 @@
       <div class="stat-card"><h3>Average Might</h3><div class="value" id="memberAverageMight">-</div></div>
     </div>
     <div class="controls"><div class="search-box"><input type="text" id="memberSearchInput" placeholder="🔍 Search by member name..."></div><button class="btn" onclick="MembersTab.loadMembers()">🔄 Refresh</button></div>
+
     <div class="tabs-container">
       <div class="tabs">
         <button class="tab active" onclick="MembersTab.switchTab('mightTab', event)">📊 Track Might</button>
         <button class="tab" onclick="MembersTab.switchTab('addMemberTab', event)">➕ Add Member</button>
         <button class="tab" onclick="MembersTab.switchTab('nameTab', event)">✏️ Change Name</button>
         <button class="tab" onclick="MembersTab.switchTab('removeMemberTab', event)">🚪 Remove Member</button>
+        <button class="tab" onclick="MembersTab.switchTab('chestPointsTab', event)">📦 Chest Points</button>
       </div>
       <div id="mightTab" class="tab-content active">
         <h3 style="margin:0 0 12px 0;">Track Member Might</h3>
@@ -719,8 +764,28 @@
         <div class="form-grid"><div><label for="removeMemberSelect">Member to Remove</label><select id="removeMemberSelect"></select></div><div><label for="endDate">End Date</label><input type="date" id="endDate"><div class="note">Date member left</div></div></div>
         <button class="btn" onclick="MembersTab.submitRemoveMember()">🚪 Remove Member</button><div id="removeMemberStatus" class="status"></div>
       </div>
+      <div id="chestPointsTab" class="tab-content">
+        <h3 style="margin:0 0 12px 0;">Chest Points - Last Active Periods</h3>
+        <div class="controls" style="margin-bottom:10px;">
+          <button class="btn" onclick="MembersTab.loadChestPointsTabData()">🔄 Refresh Chest Points</button>
+        </div>
+        <div id="chestPointsMeta" class="points-meta">Target: 3000 points (green), within 10% (orange), below (red).</div>
+        <div class="table-container" style="max-height:52vh;">
+          <div id="chestPointsLoading" class="loading" style="display:none;"><div class="spinner"></div>Loading chest points...</div>
+          <div id="chestPointsError" class="error" style="display:none;"></div>
+          <table id="chestPointsTable" style="display:none;">
+            <thead>
+              <tr id="chestPointsHeader">
+                <th>Member</th>
+              </tr>
+            </thead>
+            <tbody id="chestPointsBody"></tbody>
+          </table>
+          <div id="chestPointsEmpty" style="display:none; text-align:center; padding:30px; color:#b0b0b0;">No active periods found</div>
+        </div>
+      </div>
     </div>
-    <div class="table-container">
+    <div id="memberTableSection" class="table-container">
       <div id="memberLoading" class="loading" style="display:none;"><div class="spinner"></div>Loading members...</div>
       <div id="memberError" class="error" style="display:none;"></div>
       <table id="membersTable" style="display:none;">
@@ -761,6 +826,7 @@
       let membersData = [];
       let filteredData = [];
       let currentSort = { column: null, direction: 'asc' };
+      let chestPointsData = null;
 
       function init() {
         loadMembers();
@@ -769,6 +835,217 @@
         document.querySelectorAll('#members th.sortable').forEach(th => {
           th.addEventListener('click', () => sortTable(th.dataset.column));
         });
+      }
+
+      async function loadChestPointsTabData() {
+        const loading = document.getElementById('chestPointsLoading');
+        const error = document.getElementById('chestPointsError');
+        const table = document.getElementById('chestPointsTable');
+        const empty = document.getElementById('chestPointsEmpty');
+        if (!loading || !error || !table || !empty) return;
+
+        loading.style.display = 'block';
+        error.style.display = 'none';
+        table.style.display = 'none';
+        empty.style.display = 'none';
+
+        try {
+          const res = await fetch(window.GAS_WEB_APP_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getRecentActivePeriodChestPoints', limitPeriods: 5, targetPoints: 3000 })
+          });
+          const result = await res.json();
+
+          if (!result || !result.success) {
+            throw new Error(result?.message || 'Failed to load chest points');
+          }
+
+          chestPointsData = result;
+          renderChestPointsTable();
+        } catch (e) {
+          error.textContent = `Error: ${e.message || e}`;
+          error.style.display = 'block';
+        } finally {
+          loading.style.display = 'none';
+        }
+      }
+
+      function renderChestPointsTable() {
+        const header = document.getElementById('chestPointsHeader');
+        const body = document.getElementById('chestPointsBody');
+        const table = document.getElementById('chestPointsTable');
+        const empty = document.getElementById('chestPointsEmpty');
+        const meta = document.getElementById('chestPointsMeta');
+        if (!header || !body || !table || !empty || !meta) return;
+
+        const periods = Array.isArray(chestPointsData?.periods) ? chestPointsData.periods : [];
+        const membersRaw = Array.isArray(chestPointsData?.members) ? chestPointsData.members : [];
+
+        meta.textContent = `Target: ${Number(chestPointsData?.targetPoints || 3000)} points (green), within 10% (orange), below (red). '-' = not a member in that period, '*' = joined during that period.`;
+
+        if (periods.length === 0 || membersRaw.length === 0) {
+          table.style.display = 'none';
+          empty.style.display = 'block';
+          empty.textContent = 'No active period data available';
+          return;
+        }
+
+        const toYmd = (value) => {
+          if (!value) return '';
+          const str = String(value).trim();
+          if (!str) return '';
+
+          const normalizeYmd = (rawYmd) => {
+            const match = String(rawYmd || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!match) return '';
+
+            const year = parseInt(match[1], 10);
+            const first = parseInt(match[2], 10);
+            const second = parseInt(match[3], 10);
+
+            const isValidDate = (y, m, d) => {
+              const dt = new Date(Date.UTC(y, m - 1, d));
+              return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;
+            };
+
+            if (isValidDate(year, first, second)) {
+              return `${year}-${String(first).padStart(2, '0')}-${String(second).padStart(2, '0')}`;
+            }
+            if (isValidDate(year, second, first)) {
+              return `${year}-${String(second).padStart(2, '0')}-${String(first).padStart(2, '0')}`;
+            }
+            return '';
+          };
+
+          const ymdDirect = normalizeYmd(str);
+          if (ymdDirect) return ymdDirect;
+
+          const isoMatch = str.match(/^(\d{4}-\d{2}-\d{2})/);
+          if (isoMatch) {
+            const normalizedIso = normalizeYmd(isoMatch[1]);
+            if (normalizedIso) return normalizedIso;
+          }
+
+          const date = parseDateUTC(str);
+          if (!date || Number.isNaN(date.getTime())) return '';
+          const y = date.getUTCFullYear();
+          const m = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const d = String(date.getUTCDate()).padStart(2, '0');
+          return `${y}-${m}-${d}`;
+        };
+
+        const toYmdMemberJoinDate = (value) => {
+          if (!value) return '';
+          const str = String(value).trim();
+          if (!str) return '';
+
+          const ydmMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (ydmMatch) {
+            const year = parseInt(ydmMatch[1], 10);
+            const day = parseInt(ydmMatch[2], 10);
+            const month = parseInt(ydmMatch[3], 10);
+            const dt = new Date(Date.UTC(year, month - 1, day));
+            if (dt.getUTCFullYear() === year && dt.getUTCMonth() === (month - 1) && dt.getUTCDate() === day) {
+              return `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+            }
+          }
+
+          return toYmd(str);
+        };
+
+        const members = [...membersRaw].sort((a, b) => {
+          const aResults = Array.isArray(a.periodResults) ? a.periodResults : [];
+          const bResults = Array.isArray(b.periodResults) ? b.periodResults : [];
+          const aJoinDate = toYmdMemberJoinDate(a.joinDate);
+          const bJoinDate = toYmdMemberJoinDate(b.joinDate);
+
+          const aMissedCount = aResults.reduce((count, r, idx) => {
+            const period = periods[idx] || {};
+            const periodEnd = toYmd(period.endDate);
+            const isMemberDuringPeriod = !aJoinDate || !periodEnd || aJoinDate <= periodEnd;
+            if (!isMemberDuringPeriod) return count;
+            return count + (Number(r?.points || 0) < Number(chestPointsData?.targetPoints || 3000) ? 1 : 0);
+          }, 0);
+          const bMissedCount = bResults.reduce((count, r, idx) => {
+            const period = periods[idx] || {};
+            const periodEnd = toYmd(period.endDate);
+            const isMemberDuringPeriod = !bJoinDate || !periodEnd || bJoinDate <= periodEnd;
+            if (!isMemberDuringPeriod) return count;
+            return count + (Number(r?.points || 0) < Number(chestPointsData?.targetPoints || 3000) ? 1 : 0);
+          }, 0);
+
+          if (aMissedCount !== bMissedCount) return bMissedCount - aMissedCount;
+
+          const aTotal = aResults.reduce((sum, r, idx) => {
+            const period = periods[idx] || {};
+            const periodEnd = toYmd(period.endDate);
+            const isMemberDuringPeriod = !aJoinDate || !periodEnd || aJoinDate <= periodEnd;
+            return isMemberDuringPeriod ? (sum + Number(r?.points || 0)) : sum;
+          }, 0);
+          const bTotal = bResults.reduce((sum, r, idx) => {
+            const period = periods[idx] || {};
+            const periodEnd = toYmd(period.endDate);
+            const isMemberDuringPeriod = !bJoinDate || !periodEnd || bJoinDate <= periodEnd;
+            return isMemberDuringPeriod ? (sum + Number(r?.points || 0)) : sum;
+          }, 0);
+          if (aTotal !== bTotal) return aTotal - bTotal;
+
+          return String(a.member || '').localeCompare(String(b.member || ''));
+        });
+
+        header.innerHTML = '<th>Member</th>';
+        periods.forEach(period => {
+          const th = document.createElement('th');
+          th.textContent = `${period.periodName} (${period.startDate} - ${period.endDate})`;
+          header.appendChild(th);
+        });
+
+        body.innerHTML = '';
+        members.forEach(memberRow => {
+          const row = document.createElement('tr');
+          const firstCell = document.createElement('td');
+          const periodResults = Array.isArray(memberRow.periodResults) ? memberRow.periodResults : [];
+          const targetPoints = Number(chestPointsData?.targetPoints || 3000);
+          const joinDate = toYmdMemberJoinDate(memberRow.joinDate);
+          const firstPeriodStart = toYmd(periods[0]?.startDate);
+          const joinedAfterPeriodStart = !!joinDate && !!firstPeriodStart && joinDate > firstPeriodStart;
+          const eligibleResults = periodResults.filter((result, idx) => {
+            const periodEnd = toYmd(periods[idx]?.endDate);
+            return !joinDate || !periodEnd || joinDate <= periodEnd;
+          });
+          const missedAllGoals = eligibleResults.length > 0 && eligibleResults.every(result => Number(result?.points || 0) < targetPoints);
+
+          firstCell.className = `member-name${missedAllGoals ? ' missed-all-goals' : ''}`;
+          firstCell.textContent = joinedAfterPeriodStart
+            ? `${memberRow.member || ''} (Joined ${joinDate})`
+            : (memberRow.member || '');
+          row.appendChild(firstCell);
+
+          periods.forEach((period, idx) => {
+            const data = periodResults[idx] || { points: 0, status: 'red' };
+            const td = document.createElement('td');
+            const periodStart = toYmd(period?.startDate);
+            const periodEnd = toYmd(period?.endDate);
+            const isMemberDuringPeriod = !joinDate || !periodEnd || joinDate <= periodEnd;
+            const joinedDuringPeriod = !!joinDate && !!periodStart && !!periodEnd && joinDate >= periodStart && joinDate <= periodEnd;
+
+            if (!isMemberDuringPeriod) {
+              td.className = 'points-cell points-na';
+              td.textContent = '-';
+            } else {
+              td.className = `points-cell points-${data.status || 'red'}`;
+              const pointsText = Number(data.points || 0).toLocaleString();
+              td.textContent = joinedDuringPeriod ? `${pointsText}*` : pointsText;
+            }
+            row.appendChild(td);
+          });
+
+          body.appendChild(row);
+        });
+
+        empty.style.display = 'none';
+        table.style.display = 'table';
       }
 
       function loadMembers() {
@@ -909,7 +1186,7 @@
         if (!date) { status.textContent = 'Please choose a date.'; status.classList.add('err'); return; }
         const might = parseInt(mightRaw, 10);
         if (isNaN(might) || might <= 0) { status.textContent = 'Enter a valid might value (>0).'; status.classList.add('err'); return; }
-        // Find the member data to get previous might for recent growth calculation
+         // Find the member data to get previous might for recent growth calculation
         const memberData = membersData.find(m => m.name === member);
         const previousMight = memberData && memberData.latestMight ? memberData.latestMight : (memberData ? memberData.startMight : null);
         status.textContent = 'Saving...';
@@ -1042,6 +1319,15 @@
         document.querySelectorAll('#members .tab').forEach(t => t.classList.remove('active'));
         document.getElementById(tabId)?.classList.add('active');
         if (evt && evt.target) evt.target.classList.add('active');
+
+        const memberTableSection = document.getElementById('memberTableSection');
+        if (memberTableSection) {
+          memberTableSection.style.display = (tabId === 'chestPointsTab') ? 'none' : '';
+        }
+
+        if (tabId === 'chestPointsTab') {
+          loadChestPointsTabData();
+        }
       }
 
       function formatMight(might) {
@@ -1091,7 +1377,7 @@
         document.getElementById('memberEmpty').style.display = 'block';
       }
 
-      return { init, loadMembers, switchTab, submitMightEntry, submitAddMember, submitNameChange, submitRemoveMember };
+      return { init, loadMembers, switchTab, submitMightEntry, submitAddMember, submitNameChange, submitRemoveMember, loadChestPointsTabData };
     })();
   </script>
 </body>
