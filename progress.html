@@ -613,14 +613,17 @@
       };
       const token = (() => { try { return localStorage.getItem(AUTH_KEY); } catch (e) { return null; } })();
       const email = (() => { try { return localStorage.getItem(AUTH_EMAIL_KEY); } catch (e) { return null; } })();
+      const bankTab = document.getElementById('bankTabBtn');
       if (token && email) {
         setReadOnlyMode(false);
         updateSignedInBadge(email);
         setRestrictedTabsVisibility(true);
+        if (bankTab) bankTab.style.display = 'flex';
       } else {
         setReadOnlyMode(true);
         updateSignedInBadge(null);
         setRestrictedTabsVisibility(false);
+        if (bankTab) bankTab.style.display = 'none';
         let nav = document.querySelector('.tab-nav-container');
         if (nav && !document.getElementById('signInManageBtn')) {
           const btn = document.createElement('button');
