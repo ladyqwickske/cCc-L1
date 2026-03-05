@@ -25,6 +25,15 @@
       const d = new Date(strTrim + 'T00:00:00Z');
       return isNaN(d.getTime()) ? null : d;
     }
+    // M/D/YYYY or MM/DD/YYYY (treat as UTC)
+    const mdy = strTrim.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    if (mdy) {
+      const month = parseInt(mdy[1], 10) - 1;
+      const day = parseInt(mdy[2], 10);
+      const year = parseInt(mdy[3], 10);
+      const d = new Date(Date.UTC(year, month, day, 0, 0, 0));
+      return isNaN(d.getTime()) ? null : d;
+    }
     // Fallback: try direct parsing with Z suffix for UTC
     const d = new Date(strTrim + 'Z');
     return isNaN(d.getTime()) ? null : d;
@@ -49,6 +58,9 @@
       min-height: 100vh;
       background-attachment: fixed;
     }
+    body { top: 0 !important; }
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    .goog-te-balloon-frame { display: none !important; }
 
     /* Top Tabs */
     .tab-nav {
@@ -794,10 +806,10 @@
             <th class="sortable" data-column="name">Name</th>
             <th class="sortable" data-column="startMight">Starting Might</th>
             <th class="sortable" data-column="joinDate">Join Date</th>
-            <th class="sortable" data-column="growth">Growth %</th>
+            <th class="sortable" data-column="growth" title="Total growth from start to latest (all-time)">Growth %</th>
             <th class="sortable" data-column="latestMight">Latest Might</th>
             <th class="sortable" data-column="latestMightDate">Latest Date</th>
-            <th class="sortable" data-column="recentGrowth">Recent Growth %</th>
+            <th class="sortable" data-column="recentGrowth" title="Growth between last 2 might records only">Recent Growth %</th>
           </tr>
         </thead>
         <tbody id="membersTableBody"></tbody>
@@ -1138,11 +1150,13 @@
         const tbody = document.getElementById('membersTableBody');
         tbody.innerHTML = '';
         filteredData.forEach(member => {
+          // Growth % = Total growth from start to latest (all-time)
           let growthPercent = '-';
           if (member.startMight && member.latestMight && member.startMight > 0) {
             const g = ((member.latestMight - member.startMight) / member.startMight) * 100;
             growthPercent = g.toFixed(1) + '%';
           }
+          // Recent Growth % = Growth between last two might records only
           let recentGrowthPercent = '-';
           if (member.recentGrowthPercent !== undefined && member.recentGrowthPercent !== null) {
             recentGrowthPercent = (member.recentGrowthPercent).toFixed(1) + '%';
@@ -1340,11 +1354,11 @@
         try {
           const date = parseDateUTC(dateStr);
           if (!date) return dateStr;
-          // Format as UTC date string
+          // Format as ISO UTC date string
           const year = date.getUTCFullYear();
-          const month = date.toLocaleString('en-US', { month: 'short', timeZone: 'UTC' });
-          const day = date.getUTCDate();
-          return `${month} ${day}, ${year} (UTC)`;
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
+          return `${year}-${month}-${day} (UTC)`;
         } catch (e) {
           return dateStr;
         }

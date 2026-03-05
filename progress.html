@@ -66,6 +66,9 @@
       min-height: 100vh;
       background-attachment: fixed;
     }
+    body { top: 0 !important; }
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    .goog-te-balloon-frame { display: none !important; }
 
     /* Top Tabs */
     .tab-nav {
@@ -730,8 +733,8 @@
             <th data-column="name">Member Name</th>
             <th data-column="chestCount">Chests</th>
             <th data-column="latestMight">Latest Might</th>
-            <th data-column="growthPercent">Growth %</th>
-            <th data-column="recentGrowthPercent">Recent %</th>
+            <th data-column="growthPercent" title="All-time growth from start might to current might">Growth %</th>
+            <th data-column="recentGrowthPercent" title="Growth from last record before period to newest record in period">Recent %</th>
           </tr>
         </thead>
         <tbody id="progressTableBody"></tbody>
@@ -860,7 +863,10 @@
         const today = getTodayUTC();
         const formatDisplayDate = (date) => {
           if (!date) return '';
-          return `${date.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })} (UTC)`;
+          const year = date.getUTCFullYear();
+          const month = String(date.getUTCMonth() + 1).padStart(2, '0');
+          const day = String(date.getUTCDate()).padStart(2, '0');
+          return `${year}-${month}-${day} (UTC)`;
         };
         let periodLabel = '';
         let startDate = null;
