@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>cCc Champions - Compensation Calculator</title>
+  <title>Masters Of Oops - Compensation Calculator</title>
   <link rel="icon" href="favicon.png" type="image/png">
   <script src="config.js"></script>
   <script src="portal-shim.js"></script>
@@ -17,15 +17,21 @@
     body {
       font-family: 'Google Sans', 'Roboto', Arial, sans-serif;
       background: linear-gradient(135deg, #232526 0%, #414345 100%);
+    body { top: 0 !important; }
+    .goog-te-banner-frame.skiptranslate { display: none !important; }
+    .goog-te-balloon-frame { display: none !important; }
+    html, body { margin-top: 0 !important; top: 0 !important; }
+    body.translated-ltr, body.translated-rtl { margin-top: 0 !important; top: 0 !important; }
+    .goog-te-banner-frame, iframe.goog-te-banner-frame, .goog-te-banner-frame.skiptranslate { display: none !important; visibility: hidden !important; height: 0 !important; }
+    #goog-gt-tt, .goog-te-balloon-frame { display: none !important; visibility: hidden !important; }
+    .goog-text-highlight { background: transparent !important; box-shadow: none !important; }
+    #google_translate_element, #translateToggleBtn { top: auto !important; right: 8px !important; bottom: 8px !important; }
       color: #f3f3f3;
       text-align: center;
       padding: 32px 16px 60px 16px;
       min-height: 100vh;
       background-attachment: fixed;
     }
-    body { top: 0 !important; }
-    .goog-te-banner-frame.skiptranslate { display: none !important; }
-    .goog-te-balloon-frame { display: none !important; }
 
     .page-container {
       max-width: 1200px;
@@ -1104,7 +1110,7 @@
   <!-- Navigation Bar -->
   <nav class="tab-nav">
     <div class="tab-nav-container">
-      <div class="nav-brand" id="navBrand"><img src="favicon.png" alt="" style="height: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions</div>
+      <div class="nav-brand" id="navBrand"><img src="favicon.png" alt="" style="height: 32px; vertical-align: middle; margin-right: 8px;"> Masters Of Oops</div>
       <button class="hamburger" id="navHamburger" aria-label="Toggle navigation">
         <span></span>
         <span></span>
@@ -1441,7 +1447,7 @@
     });
 
     function logout() {
-      if (confirm('Sign out of cCc Portal?')) {
+      if (confirm('Sign out of MOO Portal?')) {
         localStorage.removeItem('cccClanSignedIn');
         localStorage.removeItem('cccClanUser');
         document.getElementById('mainContent').style.display = 'none';
@@ -1454,7 +1460,7 @@
       const isReadOnly = document.body.classList.contains('read-only-mode');
       const navBrand = document.getElementById('navBrand');
       if (navBrand) {
-        navBrand.innerHTML = '<img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> cCc Champions';
+        navBrand.innerHTML = '<img src="favicon.png" alt="" style="height: 32px; width: 32px; vertical-align: middle; margin-right: 8px;"> Masters Of Oops';
       }
       const badge = document.getElementById('readOnlyBadge');
       if (badge) {
