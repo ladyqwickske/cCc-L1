@@ -1598,7 +1598,13 @@
         }
         tbody.innerHTML = '';
         sorted.forEach(p => {
-          const icon = p.value3 === 'Yes' ? '<span style="color:#4caf50;">✓</span>' : (p.value3 === 'N/A' ? '<span style="color:#999;">—</span>' : '<span style="color:#f44336;">✕</span>');
+          const icon = p.value3 === 'Yes'
+            ? '<span style="color:#4caf50;">✓</span>'
+            : (p.value3 === 'Partial'
+              ? '<span style="color:#ff9800;">⚠</span>'
+              : (p.value3 === 'N/A'
+                ? '<span style="color:#999;">—</span>'
+                : '<span style="color:#f44336;">✕</span>'));
           const row = document.createElement('tr');
           row.innerHTML = `<td>${escapeHtml(p.memberName)}</td><td>${p.value1 || 0}</td><td style="text-align:center;">${icon}</td>`;
           tbody.appendChild(row);
