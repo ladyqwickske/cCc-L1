@@ -1290,12 +1290,6 @@
 
       function calculateChestParticipation() {
         if (!selectedEvent) return;
-        console.log('[EventsTab] calculateChestParticipation request:', {
-          eventName: selectedEvent.eventName,
-          eventType: selectedEvent.eventType,
-          startDate: selectedEvent.startDate,
-          endDate: selectedEvent.endDate
-        });
         const status = document.getElementById('chestCalcStatus');
         status.textContent = 'Calculating...';
         status.className = 'status';
@@ -1310,11 +1304,6 @@
             eventType: selectedEvent.eventType
           })
         }).then(res => res.json()).then(result => {
-          if (result && result.debug) {
-            console.groupCollapsed('[Event Debug] calculateChestParticipation:', selectedEvent.eventName);
-            console.log(result.debug);
-            console.groupEnd();
-          }
           if (result && result.success) {
             status.textContent = result.message;
             status.classList.add('ok');

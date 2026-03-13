@@ -1089,7 +1089,7 @@
         fetch(window.GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getMembersList' })
+          body: JSON.stringify({ action: 'getMembersListWithProgress' })
         })
           .then(res => res.json())
           .then(result => { onMembersLoaded(result); })

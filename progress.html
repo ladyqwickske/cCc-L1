@@ -6,6 +6,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>cCc Champions - Progress</title>
   <link rel="icon" href="favicon.png" type="image/png">
+  <script src="site-config.js"></script>
   <script src="config.js"></script>
   <script src="portal-shim.js"></script>
   <script>
@@ -281,6 +282,7 @@
     tr:hover { background: #2a2b2c; }
     tr:hover td:first-child { background: #2a2b2c; }
     td.member-name { font-weight: 500; }
+    td.member-name.joined-in-period { color: #42a5f5; }
     td.stat-cell { text-align: right; }
     td.event-cell { text-align: center; font-weight: 600; }
 
@@ -298,10 +300,10 @@
     .error { color: #ff5252; padding: 12px; background: #1a0000; border-radius: 6px; }
 
     /* Read-only Mode */
-    .read-only-mode input,
+    .read-only-mode input:not(#progSearchInput),
     .read-only-mode select,
     .read-only-mode textarea,
-    .read-only-mode button:not(.tab-btn):not(.tab):not(.hamburger) {
+    .read-only-mode button:not(.tab-btn):not(.tab):not(.hamburger):not(.period-btn) {
       pointer-events: none !important;
       background: #f5f5f5 !important;
       color: #666 !important;
@@ -736,11 +738,15 @@
       <table id="progressTable" style="display:none;">
         <thead>
           <tr id="progressTableHeader">
+            <th data-column="rankPosition" title="Composite rank">Rank</th>
             <th data-column="name">Member Name</th>
+            <th data-column="rankScore" title="Weighted score from points, growth, events, troop upgrades">Score</th>
             <th data-column="chestCount">Chests</th>
+            <th data-column="chestPoints" title="Total chest points earned in selected period">Points</th>
             <th data-column="latestMight">Latest Might</th>
             <th data-column="growthPercent" title="All-time growth from start might to current might">Growth %</th>
             <th data-column="recentGrowthPercent" title="Growth from last record before period to newest record in period">Recent %</th>
+            <th data-column="troopUpgrades" title="Troop/Crypt upgrades in active period">Upgrades</th>
           </tr>
         </thead>
         <tbody id="progressTableBody"></tbody>
@@ -757,7 +763,7 @@
     const ProgressTab = (() => {
       let progressData = [];
       let filteredData = [];
-      let currentSort = { column: 'recentGrowthPercent', direction: 'desc' };
+      let currentSort = { column: 'rankScore', direction: 'desc' };
       let currentEvents = [];
       let currentParticipationMap = {};
       let currentPeriod = 'week';
@@ -784,6 +790,30 @@
       function parseDateSafe(value) {
         // Use the UTC-aware parseDateUTC function defined at the top
         return parseDateUTC(value);
+      }
+
+      function isUserLoggedIn() {
+        try {
+          return !!(localStorage.getItem('ccc_portal_google_auth') && localStorage.getItem('ccc_portal_google_email'));
+        } catch (e) { return false; }
+      }
+
+      function applyMemberMask(memberList) {
+        if (isUserLoggedIn()) return memberList;
+        const masked = (SITE_CONFIG && Array.isArray(SITE_CONFIG.maskedMembers)) ? SITE_CONFIG.maskedMembers : [];
+        if (masked.length === 0) return memberList;
+        const maskedNorm = masked.map(n => n.trim().toLowerCase());
+        return memberList.filter(m => !maskedNorm.includes((m.name || '').trim().toLowerCase()));
+      }
+
+      function getMemberJoinedAfterPeriodStart(member) {
+        if (typeof member?.joinedAfterPeriodStart === 'boolean') {
+          return member.joinedAfterPeriodStart;
+        }
+        const joinDate = parseDateUTC(member?.joinDate);
+        const periodStart = parseDateUTC(currentPeriodStart);
+        if (!joinDate || !periodStart) return false;
+        return joinDate > periodStart;
       }
 
       function ensureTroopSummaryLoaded() {
@@ -1033,7 +1063,7 @@
         }
 
         progressData = result.members || [];
-        filteredData = [...progressData];
+        filteredData = applyMemberMask([...progressData]);
         filteredData.sort((a, b) => (b.recentGrowthPercent || 0) - (a.recentGrowthPercent || 0));
 
         if (progressData.length === 0) {
@@ -1121,6 +1151,8 @@
 
         if (currentEvents.length === 0) {
           currentParticipationMap = {};
+          calculateMemberRankings();
+          applyCurrentSort();
           renderTable();
           return;
         }
@@ -1141,12 +1173,156 @@
           }
         });
 
+        calculateMemberRankings();
+        applyCurrentSort();
         renderTable();
+      }
+
+      function applyCurrentSort() {
+        filteredData.sort((a, b) => {
+          let aVal = a[currentSort.column];
+          let bVal = b[currentSort.column];
+
+          if (currentSort.column === 'name') {
+            aVal = (aVal || '').toLowerCase();
+            bVal = (bVal || '').toLowerCase();
+          } else {
+            aVal = Number(aVal || 0);
+            bVal = Number(bVal || 0);
+          }
+
+          if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+          if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+          return 0;
+        });
+      }
+
+      function getEventStatus(member, event, participation) {
+        const eventStart = parseDateUTC(event.startDate);
+        const eventEnd = parseDateUTC(event.endDate);
+        const memberJoinDate = parseDateUTC(member.joinDate);
+        const today = getTodayUTC();
+        const hasNotStarted = eventStart && eventStart > today;
+        const memberJoinedAfterEvent = memberJoinDate && eventEnd && memberJoinDate > eventEnd;
+
+        if (hasNotStarted || memberJoinedAfterEvent) return 'na';
+
+        if (event.participationMethod === 'troop-based') {
+          const points = participation ? Number(participation.value || 0) : 0;
+          const targets = getTroopTargets(event.eventType);
+          const troopSummary = troopSummaryMap[normalizeName(member.name)] || {};
+          const gLevelRaw = troopSummary.G_currentLevel ?? troopSummary.G ?? null;
+          const gLevel = gLevelRaw !== null && gLevelRaw !== undefined ? Number(gLevelRaw) : null;
+          const targetPoints = (targets && gLevel !== null && gLevel !== undefined)
+            ? Number(targets[String(gLevel)])
+            : null;
+
+          if (targetPoints === null || isNaN(targetPoints)) return 'na';
+          if (points >= targetPoints) return 'success';
+          if (points >= targetPoints * 0.9 && points > 0) return 'warning';
+          return 'fail';
+        }
+
+        if (!participation || participation.value === 0) return 'fail';
+        if (!participation.met) return 'warning';
+        return 'success';
+      }
+
+      function getRankingWeights() {
+        const fallback = {
+          chestPoints: 35,
+          growth: 30,
+          events: 25,
+          troopUpgrades: 10
+        };
+
+        if (typeof SITE_CONFIG === 'undefined' || !SITE_CONFIG || !SITE_CONFIG.rankingWeights) {
+          return fallback;
+        }
+
+        const raw = SITE_CONFIG.rankingWeights;
+        const chestPoints = Number(raw.chestPoints);
+        const growth = Number(raw.growth);
+        const events = Number(raw.events);
+        const troopUpgrades = Number(raw.troopUpgrades);
+
+        if ([chestPoints, growth, events, troopUpgrades].some(v => Number.isNaN(v) || v < 0)) {
+          return fallback;
+        }
+
+        const total = chestPoints + growth + events + troopUpgrades;
+        if (total <= 0) return fallback;
+
+        return {
+          chestPoints,
+          growth,
+          events,
+          troopUpgrades
+        };
+      }
+
+      function calculateMemberRankings() {
+        if (!Array.isArray(progressData) || progressData.length === 0) return;
+
+        const weights = getRankingWeights();
+
+        const maxChestPoints = Math.max(...progressData.map(m => Number(m.chestPoints || 0)), 1);
+        const maxRecentGrowthPct = Math.max(...progressData.map(m => Math.max(0, Number(m.recentGrowthPercent || 0))), 1);
+        const maxRecentMightGrowth = Math.max(...progressData.map(m => Math.max(0, Number(m.recentMightGrowth || 0))), 1);
+
+        progressData.forEach(member => {
+          const chestPoints = Number(member.chestPoints || 0);
+          const recentGrowthPct = Math.max(0, Number(member.recentGrowthPercent || 0));
+          const recentMightGrowth = Math.max(0, Number(member.recentMightGrowth || 0));
+
+          const chestScore = Math.min(1, Math.log1p(chestPoints) / Math.log1p(maxChestPoints));
+          const growthScore = (0.7 * (recentGrowthPct / maxRecentGrowthPct)) + (0.3 * (recentMightGrowth / maxRecentMightGrowth));
+
+          let applicableEvents = 0;
+          let eventPoints = 0;
+          currentEvents.forEach(event => {
+            const key = `${normalizeName(member.name)}__${event.name}`;
+            const participation = currentParticipationMap[key];
+            const status = getEventStatus(member, event, participation);
+            if (status === 'na') return;
+            applicableEvents++;
+            if (status === 'success') eventPoints += 1.0;
+            else if (status === 'warning') eventPoints += 0.6;
+          });
+          const eventScore = applicableEvents > 0 ? (eventPoints / applicableEvents) : 0;
+
+          const upgradeCount = member.troopUpgrades && typeof member.troopUpgrades === 'object'
+            ? Object.keys(member.troopUpgrades).length
+            : 0;
+          let troopScore = 0;
+          if (upgradeCount >= 3) troopScore = 1.0;
+          else if (upgradeCount === 2) troopScore = 0.8;
+          else if (upgradeCount === 1) troopScore = 0.6;
+
+          const rankScore =
+            (weights.chestPoints * chestScore) +
+            (weights.growth * growthScore) +
+            (weights.events * eventScore) +
+            (weights.troopUpgrades * troopScore);
+
+          member.rankScore = Number(rankScore.toFixed(1));
+          member.rankBreakdown = {
+            chest: Number((weights.chestPoints * chestScore).toFixed(1)),
+            growth: Number((weights.growth * growthScore).toFixed(1)),
+            events: Number((weights.events * eventScore).toFixed(1)),
+            troops: Number((weights.troopUpgrades * troopScore).toFixed(1))
+          };
+        });
+
+        const ranked = [...progressData].sort((a, b) => (Number(b.rankScore || 0) - Number(a.rankScore || 0)));
+        ranked.forEach((member, index) => {
+          member.rankPosition = index + 1;
+        });
       }
 
       function filterMembers(searchTerm) {
         const term = searchTerm.toLowerCase().trim();
-        filteredData = term ? progressData.filter(m => m.name.toLowerCase().includes(term)) : [...progressData];
+        filteredData = applyMemberMask(term ? progressData.filter(m => m.name.toLowerCase().includes(term)) : [...progressData]);
         renderTable();
         if (filteredData.length === 0) showEmpty();
         else showTable();
@@ -1157,20 +1333,10 @@
           currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
         } else {
           currentSort.column = column;
-          currentSort.direction = 'asc';
+          currentSort.direction = column === 'name' ? 'asc' : 'desc';
         }
 
-        filteredData.sort((a, b) => {
-          let aVal = a[column];
-          let bVal = b[column];
-          if (column === 'name') {
-            aVal = (aVal || '').toLowerCase();
-            bVal = (bVal || '').toLowerCase();
-          }
-          if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
-          if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
-          return 0;
-        });
+        applyCurrentSort();
 
         document.querySelectorAll('#progress th[data-column]').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
         const currentTh = document.querySelector(`#progress th[data-column="${column}"]`);
@@ -1181,7 +1347,7 @@
 
       function renderTable() {
         const headerRow = document.getElementById('progressTableHeader');
-        headerRow.innerHTML = `<th data-column="name">Member Name</th><th data-column="chestCount">Chests</th><th data-column="latestMight">Latest Might</th><th data-column="growthPercent">Growth %</th><th data-column="recentGrowthPercent">Recent %</th>`;
+        headerRow.innerHTML = `<th data-column="rankPosition" title="Composite rank">Rank</th><th data-column="name">Member Name</th><th data-column="rankScore" title="Weighted score from points, growth, events, troop upgrades">Score</th><th data-column="chestCount">Chests</th><th data-column="chestPoints">Points</th><th data-column="latestMight">Latest Might</th><th data-column="growthPercent">Growth %</th><th data-column="recentGrowthPercent">Recent %</th><th data-column="troopUpgrades">Upgrades</th>`;
 
         currentEvents.forEach((event) => {
           const th = document.createElement('th');
@@ -1196,7 +1362,35 @@
 
         filteredData.forEach(member => {
           const row = document.createElement('tr');
-          let html = `<td class="member-name">${escapeHtml(member.name)}</td><td class="stat-cell">${member.chestCount || 0}</td><td class="stat-cell">${formatMight(member.latestMight)}</td><td class="stat-cell">${(member.growthPercent || 0).toFixed(1)}%</td><td class="stat-cell">${(member.recentGrowthPercent || 0).toFixed(1)}%</td>`;
+          
+          // Format troop upgrades
+          let upgradesText = '-';
+          if (member.troopUpgrades && typeof member.troopUpgrades === 'object') {
+            const upgradeEntries = [];
+            ['G', 'M', 'S', 'E', 'C'].forEach(type => {
+              if (member.troopUpgrades[type] !== undefined) {
+                upgradeEntries.push(`${type}${member.troopUpgrades[type]}`);
+              }
+            });
+            if (upgradeEntries.length > 0) {
+              upgradesText = upgradeEntries.join(' / ');
+            }
+          }
+          
+          const scoreTooltip = member.rankBreakdown
+            ? `C:${member.rankBreakdown.chest} G:${member.rankBreakdown.growth} E:${member.rankBreakdown.events} T:${member.rankBreakdown.troops}`
+            : '';
+          const isJoinedAfterPeriodStart = getMemberJoinedAfterPeriodStart(member);
+          let joinDateLabel = '';
+          if (isJoinedAfterPeriodStart && member.joinDate) {
+            const joinDate = new Date(member.joinDate);
+            const today = new Date();
+            const daysAgo = Math.floor((today - joinDate) / (1000 * 60 * 60 * 24));
+            const daysLabel = daysAgo === 0 ? 'today' : daysAgo === 1 ? '1 day ago' : `${daysAgo} days ago`;
+            joinDateLabel = ` <span style="font-size:10px;opacity:0.8;">(Joined: ${daysLabel})</span>`;
+          }
+          const memberNameClass = isJoinedAfterPeriodStart ? 'member-name joined-in-period' : 'member-name';
+          let html = `<td class="stat-cell">#${member.rankPosition || '-'}</td><td class="${memberNameClass}">${escapeHtml(member.name)}${joinDateLabel}</td><td class="stat-cell" title="${escapeHtml(scoreTooltip)}">${Number(member.rankScore || 0).toFixed(1)}</td><td class="stat-cell">${member.chestCount || 0}</td><td class="stat-cell">${Number(member.chestPoints || 0).toLocaleString()}</td><td class="stat-cell">${formatMight(member.latestMight)}</td><td class="stat-cell">${(member.growthPercent || 0).toFixed(1)}%</td><td class="stat-cell">${(member.recentGrowthPercent || 0).toFixed(1)}%</td><td class="stat-cell">${escapeHtml(upgradesText)}</td>`;
 
           currentEvents.forEach(event => {
             const key = `${normalizeName(member.name)}__${event.name}`;
@@ -1247,6 +1441,9 @@
         document.querySelectorAll('#progress th[data-column]').forEach(th => {
           th.addEventListener('click', () => sortTable(th.dataset.column));
         });
+        document.querySelectorAll('#progress th[data-column]').forEach(th => th.classList.remove('sorted-asc', 'sorted-desc'));
+        const currentTh = document.querySelector(`#progress th[data-column="${currentSort.column}"]`);
+        if (currentTh) currentTh.classList.add(`sorted-${currentSort.direction}`);
       }
 
       function formatMight(might) {
