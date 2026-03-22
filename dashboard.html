@@ -1384,12 +1384,13 @@ function filterPlayerTable() {
       document.getElementById('totalPoints').textContent = data.totalPoints ? data.totalPoints.toLocaleString() : '0';
       // Show last import timestamp from summary if available
       const display = document.getElementById('lastImportedDisplay');
-      if (display && data.lastImportTimestamp) {
-        let timestampText = data.lastImportTimestamp;
-        if (timestampText === 'Never' || timestampText === 'No imports yet') {
-          display.innerHTML = 'Last Imported: <span class="no-date">No date</span> | Required Points: 3000';
+      if (display) {
+        const timestampText = data.lastImportTimestamp || null;
+        const reqPoints = (loadPointTargets().default || 3000).toLocaleString();
+        if (!timestampText || timestampText === 'Never' || timestampText === 'No imports yet') {
+          display.innerHTML = `Last Imported: <span class="no-date">No date</span> | Required Points: ${reqPoints}`;
         } else {
-          display.innerHTML = `Last Imported: ${timestampText} | Required Points: 3000`;
+          display.innerHTML = `Last Imported: ${timestampText} | Required Points: ${reqPoints}`;
         }
       }
     }
