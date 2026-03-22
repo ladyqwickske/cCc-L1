@@ -541,7 +541,9 @@
 		<div class="header">
 			<h1><img src="competition.png" alt="Competition" style="height: 64px;"> Competition Leaderboard</h1>
 			<p>Ranking of the participating members in the Crypt Competition.</p>
-			<div class="final-notice">This competition has concluded. The results shown below are the final results.</div>
+			<div class="final-notice" id="competition-notice">
+				<span id="competition-notice-text">A new competition will start today at reset — in <strong id="resetCountdown">--:--:--</strong></span>
+			</div>
 		</div>
 
 		<div class="actions">
@@ -574,6 +576,16 @@
 	</div>
 
 	<script>
+		// =====================================================================
+		// COMPETITION CONFIGURATION — edit these two values to update the schedule
+		// Belgium time → UTC conversion:
+		//   Winter (Oct–Mar): Belgium = UTC+1  →  e.g. 18:00 Belgium = 17:00 UTC
+		//   Summer (Mar–Oct): Belgium = UTC+2  →  e.g. 18:00 Belgium = 16:00 UTC
+		// =====================================================================
+		const COMPETITION_START_UTC = '2026-03-22T17:00:00Z'; // 18:00 Belgian time (CET = UTC+1)
+		const COMPETITION_DURATION_HOURS = 24;                 // competition length in hours
+		// =====================================================================
+
 		function escapeHtml(text) {
 			return String(text || '')
 				.replace(/&/g, '&amp;')
@@ -641,7 +653,46 @@
 
 		document.addEventListener('DOMContentLoaded', () => {
 			loadCompetitionLeaderboard();
+			startResetCountdown();
 		});
+
+		function startResetCountdown() {
+			const countdownEl = document.getElementById('resetCountdown');
+			const noticeTextEl = document.getElementById('competition-notice-text');
+			if (!noticeTextEl) return;
+
+			const startMs = new Date(COMPETITION_START_UTC).getTime();
+			const endMs = startMs + COMPETITION_DURATION_HOURS * 3600 * 1000;
+
+			function formatCountdown(ms) {
+				if (ms <= 0) return '00:00:00';
+				const totalSec = Math.floor(ms / 1000);
+				const h = Math.floor(totalSec / 3600);
+				const m = Math.floor((totalSec % 3600) / 60);
+				const s = totalSec % 60;
+				return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+			}
+
+			function update() {
+				const now = Date.now();
+				if (now < startMs) {
+					// Before competition starts
+					const ms = startMs - now;
+					noticeTextEl.innerHTML = `A new competition starts at reset — in <strong id="resetCountdown">${formatCountdown(ms)}</strong>`;
+				} else if (now < endMs) {
+					// Competition is live
+					const ms = endMs - now;
+					noticeTextEl.innerHTML = `🏆 Competition is live! Ends in <strong id="resetCountdown">${formatCountdown(ms)}</strong>`;
+				} else {
+					// Competition has ended
+					noticeTextEl.innerHTML = 'This competition has concluded. The results shown below are the final results.';
+					clearInterval(intervalId);
+				}
+			}
+
+			update();
+			const intervalId = setInterval(update, 1000);
+		}
 	</script>
 	<script>
 		document.addEventListener('DOMContentLoaded', function() {
