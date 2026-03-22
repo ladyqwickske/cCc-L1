@@ -1325,12 +1325,26 @@ function filterPlayerTable() {
       
       // Use CORS proxy (Cloudflare Worker) for API calls
       // 1. Get summary
+      const summaryPayload = { action: 'getStatsSummary', startDate, endDate, periodPreset: currentPreset };
+      console.log('[DEBUG] getStatsSummary request payload:', summaryPayload);
       fetch(window.GAS_WEB_APP_URL, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'getStatsSummary', startDate, endDate, periodPreset: currentPreset })
+        body: JSON.stringify(summaryPayload)
       })
-        .then(res => res.json())
+        .then(res => {
+          console.log('[DEBUG] getStatsSummary response status:', res.status, res.statusText);
+          return res.text();
+        })
+        .then(text => {
+          console.log('[DEBUG] getStatsSummary raw response:', text.substring(0, 500));
+          try {
+            return JSON.parse(text);
+          } catch (e) {
+            console.error('[DEBUG] getStatsSummary JSON parse error:', e, 'raw:', text.substring(0, 200));
+            return {};
+          }
+        })
         .then(displaySummary)
         .catch(e => console.error('Summary error:', e));
 
@@ -1378,6 +1392,10 @@ function filterPlayerTable() {
     }
     
     function displaySummary(data) {
+      console.log('[DEBUG] displaySummary called with:', JSON.stringify(data));
+      console.log('[DEBUG] displaySummary data keys:', Object.keys(data || {}));
+      console.log('[DEBUG] displaySummary values: totalChests=%s, totalMembers=%s, totalPlayers=%s, totalPoints=%s, lastImportTimestamp=%s',
+        data.totalChests, data.totalMembers, data.totalPlayers, data.totalPoints, data.lastImportTimestamp);
       document.getElementById('totalChests').textContent = data.totalChests ? data.totalChests.toLocaleString() : '0';
       document.getElementById('totalMembers').textContent = data.totalMembers || '0';
       document.getElementById('totalPlayers').textContent = data.totalPlayers || '0';
