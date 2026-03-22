@@ -1382,16 +1382,39 @@ function filterPlayerTable() {
       document.getElementById('totalMembers').textContent = data.totalMembers || '0';
       document.getElementById('totalPlayers').textContent = data.totalPlayers || '0';
       document.getElementById('totalPoints').textContent = data.totalPoints ? data.totalPoints.toLocaleString() : '0';
-      // Show last import timestamp from summary if available
+      updateLastImportedDisplay(data.lastImportTimestamp || null);
+    }
+
+    function updateLastImportedDisplay(timestampText) {
       const display = document.getElementById('lastImportedDisplay');
-      if (display) {
-        const timestampText = data.lastImportTimestamp || null;
-        const reqPoints = (loadPointTargets().default || 3000).toLocaleString();
-        if (!timestampText || timestampText === 'Never' || timestampText === 'No imports yet') {
-          display.innerHTML = `Last Imported: <span class="no-date">No date</span> | Required Points: ${reqPoints}`;
-        } else {
-          display.innerHTML = `Last Imported: ${timestampText} | Required Points: ${reqPoints}`;
-        }
+      if (!display) return;
+      const reqPoints = (loadPointTargets().default || 3000).toLocaleString();
+      if (!timestampText || timestampText === 'Never' || timestampText === 'No imports yet') {
+        // Timestamp missing from summary response — fetch it directly as a fallback
+        fetch(window.GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'getLastImportTimestamp' })
+        })
+          .then(res => res.json())
+          .then(result => {
+            // result may be a plain string or { value: '...' } depending on GAS version
+            const ts = (typeof result === 'string' && result) ||
+                       (result && typeof result.value === 'string' && result.value) ||
+                       (result && typeof result.lastImportTimestamp === 'string' && result.lastImportTimestamp) ||
+                       null;
+            const reqPts = (loadPointTargets().default || 3000).toLocaleString();
+            if (ts && ts !== 'Never' && ts !== 'No imports yet') {
+              display.innerHTML = `Last Imported: ${ts} | Required Points: ${reqPts}`;
+            } else {
+              display.innerHTML = `Last Imported: <span class="no-date">No date</span> | Required Points: ${reqPts}`;
+            }
+          })
+          .catch(() => {
+            display.innerHTML = `Last Imported: <span class="no-date">No date</span> | Required Points: ${reqPoints}`;
+          });
+      } else {
+        display.innerHTML = `Last Imported: ${timestampText} | Required Points: ${reqPoints}`;
       }
     }
     
