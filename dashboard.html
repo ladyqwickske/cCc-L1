@@ -718,11 +718,11 @@
     function loadPointTargets() {
       if (pointTargetsCache) return pointTargetsCache;
       try {
-        const raw = JSON.parse(localStorage.getItem(PT_KEY) || '{"default":3000,"overrides":[]}');
+        const raw = JSON.parse(localStorage.getItem(PT_KEY) || '{"default":7500,"overrides":[]}');
         if (!Array.isArray(raw.overrides)) raw.overrides = [];
         pointTargetsCache = raw;
         return raw;
-      } catch(e) { return { default: 3000, overrides: [] }; }
+      } catch(e) { return { default: 7500, overrides: [] }; }
     }
     function savePointTargets(obj) {
       pointTargetsCache = obj;
@@ -742,7 +742,7 @@
         .then(res => res.json())
         .then(result => {
           if (result && result.success !== false) {
-            const obj = { default: result.default || 3000, overrides: Array.isArray(result.overrides) ? result.overrides : [] };
+            const obj = { default: result.default || 7500, overrides: Array.isArray(result.overrides) ? result.overrides : [] };
             pointTargetsCache = obj;
             try { localStorage.setItem(PT_KEY, JSON.stringify(obj)); } catch(e) {}
           }
@@ -763,7 +763,7 @@
         return Number(periodTargetPoints);
       }
       // 3. Global default
-      return pt.default || 3000;
+      return pt.default || 7500;
     }
     function escapeHtmlDash(text) {
       const d = document.createElement('div'); d.textContent = text; return d.innerHTML;
@@ -1424,7 +1424,7 @@ function filterPlayerTable() {
       if (currentPeriodTargetPoints != null && !isNaN(Number(currentPeriodTargetPoints)) && Number(currentPeriodTargetPoints) > 0) {
         return Number(currentPeriodTargetPoints);
       }
-      return loadPointTargets().default || 3000;
+      return loadPointTargets().default || 7500;
     }
 
     function updateRequiredPointsDisplay() {

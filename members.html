@@ -827,7 +827,7 @@
           <p style="font-size:12px;color:#b0b0b0;margin:0 0 12px 0;">Set a custom point target per player per active period. Overrides the default for that cell only. Saved locally in this browser.</p>
           <div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;">
             <label style="font-size:12px;color:#ffb300;white-space:nowrap;font-weight:600;">Default target:</label>
-            <input type="number" id="ptDefaultInput" min="0" step="100" value="3000" style="width:100px;padding:5px 8px;border:1px solid #444;border-radius:5px;background:#1a1c1e;color:#e0e0e0;font-size:13px;">
+            <input type="number" id="ptDefaultInput" min="0" step="100" value="7500" style="width:100px;padding:5px 8px;border:1px solid #444;border-radius:5px;background:#1a1c1e;color:#e0e0e0;font-size:13px;">
             <button onclick="MembersTab.savePtDefault()" class="btn" style="padding:5px 14px;font-size:12px;">Save default</button>
           </div>
           <div style="border-top:1px solid #333;padding-top:12px;">
@@ -842,7 +842,7 @@
           </div>
         </div>
 
-        <div id="chestPointsMeta" class="points-meta">Target: 3000 points (green), within 10% (orange), below (red).</div>
+        <div id="chestPointsMeta" class="points-meta">Target: 7,500 points (green), within 10% (orange), below (red).</div>
         <div class="table-container" style="max-height:52vh;">
           <div id="chestPointsLoading" class="loading" style="display:none;"><div class="spinner"></div>Loading chest points...</div>
           <div id="chestPointsError" class="error" style="display:none;"></div>
@@ -913,18 +913,18 @@
       }
 
       // ── Point Targets (server-backed with localStorage cache) ─────────
-      // Schema: { default: 3000, overrides: [ { player, period, points } ] }
+      // Schema: { default: 7500, overrides: [ { player, period, points } ] }
       const PT_KEY = 'ccc_point_targets';
       let pointTargetsCache = null; // in-memory cache
 
       function loadPointTargets() {
         if (pointTargetsCache) return pointTargetsCache;
         try {
-          const raw = JSON.parse(localStorage.getItem(PT_KEY) || '{"default":3000,"overrides":[]}');
+          const raw = JSON.parse(localStorage.getItem(PT_KEY) || '{"default":7500,"overrides":[]}');
           if (!Array.isArray(raw.overrides)) raw.overrides = [];
           pointTargetsCache = raw;
           return raw;
-        } catch(e) { return { default: 3000, overrides: [] }; }
+        } catch(e) { return { default: 7500, overrides: [] }; }
       }
       function savePointTargets(obj) {
         pointTargetsCache = obj;
@@ -945,7 +945,7 @@
           .then(res => res.json())
           .then(result => {
             if (result && result.success !== false) {
-              const obj = { default: result.default || 3000, overrides: Array.isArray(result.overrides) ? result.overrides : [] };
+              const obj = { default: result.default || 7500, overrides: Array.isArray(result.overrides) ? result.overrides : [] };
               pointTargetsCache = obj;
               try { localStorage.setItem(PT_KEY, JSON.stringify(obj)); } catch(e) {}
             }
@@ -966,14 +966,14 @@
         if (periodTargetPoints !== null && periodTargetPoints !== undefined && !isNaN(Number(periodTargetPoints)) && Number(periodTargetPoints) > 0) {
           return Number(periodTargetPoints);
         }
-        return pt.default || 3000;
+        return pt.default || 7500;
       }
       // getPeriodTarget: returns the target for a specific period (period-level if set, else global default)
       function getPeriodTarget(periodTargetPoints) {
         if (periodTargetPoints !== null && periodTargetPoints !== undefined && !isNaN(Number(periodTargetPoints)) && Number(periodTargetPoints) > 0) {
           return Number(periodTargetPoints);
         }
-        return loadPointTargets().default || 3000;
+        return loadPointTargets().default || 7500;
       }
       function escapeHtmlMem(text) {
         const d = document.createElement('div'); d.textContent = text; return d.innerHTML;
@@ -1006,7 +1006,7 @@
       function renderPointTargetsPanel() {
         const pt = loadPointTargets();
         const defInput = document.getElementById('ptDefaultInput');
-        if (defInput) defInput.value = pt.default || 3000;
+        if (defInput) defInput.value = pt.default || 7500;
         populatePtSelects();
         const list = document.getElementById('ptOverrideList');
         if (!list) return;
@@ -1104,7 +1104,7 @@
           const res = await fetch(window.GAS_WEB_APP_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'getRecentActivePeriodChestPoints', limitPeriods: 5, targetPoints: loadPointTargets().default || 3000 })
+            body: JSON.stringify({ action: 'getRecentActivePeriodChestPoints', limitPeriods: 5, targetPoints: loadPointTargets().default || 7500 })
           });
           const result = await res.json();
 
@@ -1134,7 +1134,7 @@
         const periods = Array.isArray(chestPointsData?.periods) ? chestPointsData.periods : [];
         const membersRaw = Array.isArray(chestPointsData?.members) ? chestPointsData.members : [];
 
-        const defaultTgt = loadPointTargets().default || 3000;
+        const defaultTgt = loadPointTargets().default || 7500;
         meta.textContent = `Default target: ${defaultTgt} points (green ≥ target, orange ≥ 90%, red below). Per-period or per-player overrides may apply. '-' = not a member in that period, '*' = joined during that period.`;
 
         if (periods.length === 0 || membersRaw.length === 0) {
@@ -1190,11 +1190,34 @@
 
 
 
+        const toYmdMemberJoinDate = (value) => {
+          if (!value) return '';
+          const str = String(value).trim();
+          if (!str) return '';
+          const ymdMatch = str.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (ymdMatch) {
+            const year = parseInt(ymdMatch[1], 10);
+            const first = parseInt(ymdMatch[2], 10);
+            const second = parseInt(ymdMatch[3], 10);
+            const isValidDate = (y, m, d) => {
+              const dt = new Date(Date.UTC(y, m - 1, d));
+              return dt.getUTCFullYear() === y && dt.getUTCMonth() === (m - 1) && dt.getUTCDate() === d;
+            };
+            if (isValidDate(year, first, second)) {
+              return `${year}-${String(first).padStart(2, '0')}-${String(second).padStart(2, '0')}`;
+            }
+            if (isValidDate(year, second, first)) {
+              return `${year}-${String(second).padStart(2, '0')}-${String(first).padStart(2, '0')}`;
+            }
+          }
+          return toYmd(str);
+        };
+
         const members = [...membersRaw].sort((a, b) => {
           const aResults = Array.isArray(a.periodResults) ? a.periodResults : [];
           const bResults = Array.isArray(b.periodResults) ? b.periodResults : [];
-          const aJoinDate = toYmd(a.joinDate);
-          const bJoinDate = toYmd(b.joinDate);
+          const aJoinDate = toYmdMemberJoinDate(a.joinDate);
+          const bJoinDate = toYmdMemberJoinDate(b.joinDate);
 
           const aMissedCount = aResults.reduce((count, r, idx) => {
             const period = periods[idx] || {};
@@ -1245,7 +1268,7 @@
           const row = document.createElement('tr');
           const firstCell = document.createElement('td');
           const periodResults = Array.isArray(memberRow.periodResults) ? memberRow.periodResults : [];
-          const joinDate = toYmd(memberRow.joinDate);
+          const joinDate = toYmdMemberJoinDate(memberRow.joinDate);
           const firstPeriodStart = toYmd(periods[0]?.startDate);
           const joinedAfterPeriodStart = !!joinDate && !!firstPeriodStart && joinDate > firstPeriodStart;
           let eligibleCount = 0;
