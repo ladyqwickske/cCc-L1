@@ -830,8 +830,7 @@
 
 
       function init() {
-        switchTab('manageTab');
-        loadEvents();
+        switchTab('manageTab'); // switchTab already calls loadEvents()
         loadMembers();
         loadChestTypes();
         loadEventTypes();
@@ -888,10 +887,14 @@
         document.getElementById('eventsLoading').style.display = 'block';
         document.getElementById('eventsTable').style.display = 'none';
         document.getElementById('eventsEmpty').style.display = 'none';
+        // Only fetch events from last 2 months + future (reduces payload & backend work)
+        const since = new Date();
+        since.setUTCMonth(since.getUTCMonth() - 2);
+        const sinceDate = since.toISOString().substring(0, 10);
         fetch(window.GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getAllEvents' })
+          body: JSON.stringify({ action: 'getAllEvents', sinceDate: sinceDate })
         })
           .then(res => res.json())
           .then(onEventsLoaded)
@@ -1026,10 +1029,12 @@
       }
 
       function loadMembers() {
+        // Use getAllMembers (reads Members sheet only) instead of getMembersList
+        // (which scans every Might_YYYY-MM-DD sheet). Events page only needs names + join dates.
         fetch(window.GAS_WEB_APP_URL, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'getMembersList' })
+          body: JSON.stringify({ action: 'getAllMembers' })
         })
           .then(res => res.json())
           .then(result => {
