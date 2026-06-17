@@ -618,7 +618,7 @@
 
       renderPerformanceScore(data.performanceScore);
       renderMembership(data.membership);
-      renderChestStats(data.chestStats);
+      renderChestStats(data.chestStats, data.membership);
       renderTargetCompletion(data.targetCompletion);
       renderPeriodTable(data.periodStats);
       renderEventTable(data.eventHistory);
@@ -687,18 +687,19 @@
       el.innerHTML = cards.join('');
     }
 
-    function renderChestStats(cs) {
+    function renderChestStats(cs, membership) {
       if (!cs) return;
       const el = document.getElementById('chestStatsInfo');
       const noteEl = document.getElementById('chestStatsNote');
       if (noteEl && cs.periodsScanned) noteEl.textContent = '(last ' + cs.periodsScanned + ' periods)';
+      const joinDate = membership && membership.joinDate ? membership.joinDate.substring(0, 10) : null;
       const cards = [
         card('Total Chests', formatNumber(cs.totalChests)),
         card('Total Points', formatNumber(cs.totalPoints)),
         card('Point Chests', formatNumber(cs.pointChests)),
         card('Event Chests', formatNumber(cs.eventChests))
       ];
-      if (cs.firstSeen) cards.push(card('First Seen', cs.firstSeen.substring(0, 10)));
+      if (joinDate) cards.push(card('Join Date', joinDate));
       if (cs.lastSeen) cards.push(card('Last Seen', cs.lastSeen.substring(0, 10)));
       el.innerHTML = cards.join('');
     }
