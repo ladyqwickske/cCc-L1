@@ -536,7 +536,7 @@
         logoutBtn.style.display = 'none';
       }
       // Show/hide restricted tabs
-      const restricted = ['events.html', 'members.html', 'warnings.html'];
+      const restricted = ['events.html', 'members.html', 'warnings.html', 'profiling.html'];
       restricted.forEach(href => {
         document.querySelectorAll(`.tab-buttons .tab-btn[href="${href}"]`).forEach(el => {
           el.style.display = isLoggedIn ? '' : 'none';
@@ -580,6 +580,10 @@
         <a href="members.html" class="tab-btn" title="Members">
           <img src="members.png" alt="Members" class="tab-icon desktop-only">
           <span class="tab-label mobile-only">Members</span>
+        </a>
+        <a href="profiling.html" class="tab-btn" title="Profiling">
+          <img src="profiling.png" alt="Profiling" class="tab-icon desktop-only">
+          <span class="tab-label mobile-only">Profiling</span>
         </a>
         <a href="warnings.html" class="tab-btn" title="Warnings">
           <img src="warning.png" alt="Warnings" class="tab-icon desktop-only">
