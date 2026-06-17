@@ -70,6 +70,9 @@
     .breakdown-row .bar-fill { height: 100%; border-radius: 4px; transition: width 0.6s ease; }
     .breakdown-row .bar-value { font-size: 11px; color: #e0e0e0; width: 30px; text-align: right; }
 
+    /* Section notes */
+    .section-note { font-size: 11px; font-weight: 400; color: #888; margin-left: 4px; }
+
     /* Info Cards */
     .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin: 16px 0; }
     .info-card { background: #232526; border-radius: 8px; padding: 14px; border: 1px solid #444; }
@@ -352,11 +355,11 @@
       <div class="info-grid" id="membershipInfo"></div>
 
       <!-- Chest Stats -->
-      <h2>Chest Statistics</h2>
+      <h2>Chest Statistics <span id="chestStatsNote" class="section-note"></span></h2>
       <div class="info-grid" id="chestStatsInfo"></div>
 
       <!-- Target Completion -->
-      <h2>Target Completion</h2>
+      <h2>Target Completion <span id="targetNote" class="section-note"></span></h2>
       <div class="info-grid" id="targetInfo"></div>
 
       <!-- Period History (last 5) -->
@@ -369,7 +372,7 @@
       </div>
 
       <!-- Event History -->
-      <h2>Event Participation</h2>
+      <h2>Event Participation <span id="eventNote" class="section-note"></span></h2>
       <div class="period-table-container">
         <table>
           <thead><tr><th>Event</th><th>Type</th><th>Dates</th><th>Result</th></tr></thead>
@@ -687,6 +690,8 @@
     function renderChestStats(cs) {
       if (!cs) return;
       const el = document.getElementById('chestStatsInfo');
+      const noteEl = document.getElementById('chestStatsNote');
+      if (noteEl && cs.periodsScanned) noteEl.textContent = '(last ' + cs.periodsScanned + ' periods)';
       const cards = [
         card('Total Chests', formatNumber(cs.totalChests)),
         card('Total Points', formatNumber(cs.totalPoints)),
@@ -701,6 +706,8 @@
     function renderTargetCompletion(tc) {
       if (!tc) return;
       const el = document.getElementById('targetInfo');
+      const noteEl = document.getElementById('targetNote');
+      if (noteEl && tc.total > 0) noteEl.textContent = '(last ' + tc.total + ' completed periods)';
       const pct = tc.total > 0 ? Math.round((tc.met / tc.total) * 100) : 0;
       const color = pct >= 80 ? 'badge-green' : pct >= 50 ? 'badge-orange' : 'badge-red';
       el.innerHTML = [
@@ -744,6 +751,8 @@
 
     function renderEventTable(events) {
       const tbody = document.getElementById('eventTableBody');
+      const noteEl = document.getElementById('eventNote');
+      if (noteEl && events && events.length > 0) noteEl.textContent = '(last ' + events.length + ' events)';
       if (!events || events.length === 0) {
         tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#888;">No event data available</td></tr>';
         return;
