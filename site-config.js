@@ -29,12 +29,14 @@ const SITE_CONFIG = {
     'Euphrates',
     'MerdOS1',
     'LION',
-    'Red Kit',
+    'SIMURG 276',
     'Avciss',
-    'ZaZa 276',
+    'ZaZa',
     'Otto S4',
     'PANDA',
     'cCc Cp City',
+    'ChestCounter Q',
+    'Otto'
     // 'AnotherSpecialMember'
   ],
 
@@ -45,6 +47,7 @@ const SITE_CONFIG = {
     { name: 'Members', file: 'members.html', icon: 'members.png' },
     { name: 'Troops', file: 'troops.html', icon: 'troops.png' },
     { name: 'Warnings', file: 'warnings.html', icon: 'warning.png' },
+    { name: 'Resources', file: 'resources.html', icon: 'resources.png' },
     { name: 'Calendar', file: 'calendar.html', icon: 'calendar.png' }
   ]
 };
